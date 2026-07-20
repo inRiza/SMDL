@@ -1,0 +1,53 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url = env("DATABASE_URL")
+}
+
+enum DocumentStatus {
+    processing
+    ready
+    ler_failed
+}
+
+enum FileFormat {
+    pdf
+    docx
+}
+
+enum DocumentCategory {
+    agreement
+    contract
+    policy
+    other
+}
+
+enum DocumentSort {
+    newest
+    oldest
+    title_asc
+    title_desc
+}
+
+model Document {
+    id               String   @id @default(uuid()) @db.Uuid
+    title            String
+    description      String?
+    category         String?
+    fileFormat       FileFormat     @map("file_format")
+    fileSizeBytes    BigInt         @map("file_size_bytes")
+    status           DocumentStatus @default(processing)
+    storageKey       String         @map("storage_key")
+    ownerId          String         @map("owner_id") @db.Uuid
+    organizationId   String?        @map("organization_id") @db.Uuid
+    createdAt        DateTime       @default(now()) @map("created_at")
+
+    @@index([title])
+    @@index([category])
+    @@index([status])
+    @@index([createdAt])
+    @@map("documents")
+}
