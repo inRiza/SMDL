@@ -1,12 +1,22 @@
 {
   "name": "be",
   "scripts": {
-    "dev": "bun run --hot src/index.ts"
+    "dev": "bun run --hot src/index.ts",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:generate": "prisma generate --schema=src/db/schema.prisma",
+    "db:push": "prisma db push --schema=src/db/schema.prisma",
+    "db:seed": "bun run src/db/seed.ts",
+    "db:setup": "bun run db:push && bun run db:seed",
+    "db:generate:schema": "prisma generate --schema=src/db/schema.prisma"
   },
   "dependencies": {
-    "hono": "^4.12.30"
+    "@prisma/client": "^6.5.0",
+    "hono": "^4.12.30",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "prisma": "^6.5.0"
   }
 }
