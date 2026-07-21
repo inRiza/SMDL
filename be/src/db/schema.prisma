@@ -1,53 +1,128 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  owner
+  viewer
+  auditor
 }
 
 enum DocumentStatus {
-    processing
-    ready
-    ler_failed
+  processing
+  ready
+  ler_failed
 }
 
 enum FileFormat {
-    pdf
-    docx
+  pdf
+  docx
 }
 
 enum DocumentCategory {
-    agreement
-    contract
-    policy
-    other
+  agreement
+  contract
+  policy
+  other
 }
 
 enum DocumentSort {
-    newest
-    oldest
-    title_asc
-    title_desc
+  newest
+  oldest
+  title_asc
+  title_desc
+}
+
+enum TellsMessageRole {
+  user
+  assistant
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique @map("email")
+  passwordHash String    @map("password_hash")
+  role         UserRole  @default(viewer)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  sessions     Session[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 model Document {
-    id               String   @id @default(uuid()) @db.Uuid
-    title            String
-    description      String?
-    category         String?
-    fileFormat       FileFormat     @map("file_format")
-    fileSizeBytes    BigInt         @map("file_size_bytes")
-    status           DocumentStatus @default(processing)
-    storageKey       String         @map("storage_key")
-    ownerId          String         @map("owner_id") @db.Uuid
-    organizationId   String?        @map("organization_id") @db.Uuid
-    createdAt        DateTime       @default(now()) @map("created_at")
+  id             String          @id @default(uuid()) @db.Uuid
+  title          String
+  description    String?
+  category       String?
+  fileFormat     FileFormat      @map("file_format")
+  fileSizeBytes  BigInt          @map("file_size_bytes")
+  status         DocumentStatus  @default(processing)
+  storageKey     String          @map("storage_key")
+  ownerId        String          @map("owner_id") @db.Uuid
+  chunks         DocumentChunk[]
+  organizationId String?         @map("organization_id") @db.Uuid
+  createdAt      DateTime        @default(now()) @map("created_at")
 
-    @@index([title])
-    @@index([category])
-    @@index([status])
-    @@index([createdAt])
-    @@map("documents")
+  @@index([title])
+  @@index([category])
+  @@index([status])
+  @@index([createdAt])
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id         String   @id @default(uuid()) @db.Uuid
+  documentId String   @map("document_id") @db.Uuid
+  chunkIndex Int      @map("chunk_index")
+  content    String
+  createdAt  DateTime @default(now()) @map("created_at")
+  document   Document @relation(fields: [documentId], references: [id])
+
+  @@index([documentId])
+  @@map("document_chunks")
+}
+
+model TellsChat {
+  id        String             @id @default(uuid()) @db.Uuid
+  userId    String             @map("user_id") @db.Uuid
+  title     String?
+  messages  TellsChatMessage[]
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+
+  @@index([userId, updatedAt])
+  @@map("tells_chats")
+}
+
+model TellsChatMessage {
+  id          String           @id @default(uuid()) @db.Uuid
+  tellsChatId String           @map("tells_chat_id") @db.Uuid
+  role        TellsMessageRole
+  content     String
+  citations   Json?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  tellsChat   TellsChat        @relation(fields: [tellsChatId], references: [id], onDelete: Cascade)
+
+  @@index([tellsChatId, createdAt])
+  @@map("tells_chat_messages")
 }
