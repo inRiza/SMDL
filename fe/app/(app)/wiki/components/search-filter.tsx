@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { DocumentFilters } from "@/types/document.types";
 import { cn } from "@/lib/utils";
+import { FilterDropdown } from "./filter-dropdown";
 import { useWikiSearch } from "./wiki-search-provider";
 
 type SearchFilterProps = {
@@ -32,9 +33,6 @@ const sortOptions = [
   { value: "title_asc", label: "Judul A–Z" },
   { value: "title_desc", label: "Judul Z–A" },
 ];
-
-const selectClass =
-  "h-8 appearance-none rounded-sm border-0 bg-transparent py-0 pr-6 pl-0 text-sm text-telkom-grey-700 outline-none focus:ring-0";
 
 export function SearchFilter({ categories }: SearchFilterProps) {
   const pathname = usePathname();
@@ -97,28 +95,28 @@ export function SearchFilter({ categories }: SearchFilterProps) {
   }
 
   return (
-    <div className="w-full bg-white">
+    <div className="w-full border-b border-telkom-grey-200 bg-white">
       <form
         onSubmit={(e) => {
           e.preventDefault();
           applyFilters();
         }}
       >
-        <div className="flex items-center gap-2 p-4">
-          <div className="relative min-w-0 flex-1 border">
+        <div className="flex items-center gap-2 border-b border-telkom-grey-200 px-4 py-2">
+          <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-telkom-grey-400" />
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Cari dokumen..."
-              className="h-8 border-0 bg-transparent pl-9 shadow-none focus-visible:ring-0"
+              className="h-10 border-0 bg-transparent pl-9 shadow-none transition-colors hover:bg-telkom-grey-100 focus-visible:bg-telkom-grey-100 focus-visible:ring-0"
             />
           </div>
 
           <Button
             type="submit"
             size="sm"
-            className="shrink-0 cursor-pointer bg-telkom-red hover:bg-telkom-red-dark py-4"
+            className="shrink-0 cursor-pointer bg-telkom-red hover:bg-telkom-red-dark"
           >
             Cari
           </Button>
@@ -127,7 +125,10 @@ export function SearchFilter({ categories }: SearchFilterProps) {
             type="button"
             variant="ghost"
             size="sm"
-            className="shrink-0 cursor-pointer gap-1.5 bg-telkom-grey-100 text-telkom-grey-600 hover:bg-telkom-grey-200 py-4"
+            className={cn(
+              "shrink-0 cursor-pointer gap-1.5 text-telkom-grey-600 transition-colors hover:bg-telkom-grey-100",
+              (showFilters || hasActiveFilters) && "bg-telkom-grey-100"
+            )}
             onClick={() => setShowFilters((prev) => !prev)}
           >
             <SlidersHorizontal className="size-3.5" />
@@ -137,12 +138,14 @@ export function SearchFilter({ categories }: SearchFilterProps) {
 
         <div
           className={cn(
-            "overflow-hidden transition-all duration-200",
-            showFilters || hasActiveFilters ? "max-h-24 opacity-100" : "max-h-0 opacity-0"
+            "transition-[opacity] duration-200",
+            showFilters || hasActiveFilters
+              ? "overflow-visible opacity-100"
+              : "pointer-events-none h-0 overflow-hidden opacity-0"
           )}
         >
-          <div className="flex flex-wrap items-center gap-x-1 gap-y-2 px-3 py-2.5 text-sm">
-            <FilterSelect
+          <div className="flex flex-wrap items-center gap-1 px-3 py-2.5">
+            <FilterDropdown
               label="Kategori"
               value={category}
               onChange={(value) => {
@@ -157,7 +160,7 @@ export function SearchFilter({ categories }: SearchFilterProps) {
 
             <FilterDivider />
 
-            <FilterSelect
+            <FilterDropdown
               label="Status"
               value={status}
               onChange={(value) => {
@@ -169,7 +172,7 @@ export function SearchFilter({ categories }: SearchFilterProps) {
 
             <FilterDivider />
 
-            <FilterSelect
+            <FilterDropdown
               label="Format"
               value={fileFormat}
               onChange={(value) => {
@@ -181,7 +184,7 @@ export function SearchFilter({ categories }: SearchFilterProps) {
 
             <FilterDivider />
 
-            <FilterSelect
+            <FilterDropdown
               label="Urutkan"
               value={sort}
               onChange={(value) => {
@@ -197,7 +200,7 @@ export function SearchFilter({ categories }: SearchFilterProps) {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="inline-flex cursor-pointer items-center gap-1 bg-telkom-grey-100 px-2 py-1 text-xs font-medium text-telkom-grey-500 transition-colors hover:bg-telkom-red/20 hover:text-telkom-red"
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-sm px-2.5 py-1.5 text-xs font-medium text-telkom-grey-500 transition-colors hover:bg-telkom-grey-100 hover:text-telkom-red"
                 >
                   <X className="size-3" />
                   Reset
@@ -212,31 +215,5 @@ export function SearchFilter({ categories }: SearchFilterProps) {
 }
 
 function FilterDivider() {
-  return <span className="mx-1 hidden h-4 w-px bg-telkom-grey-200 sm:inline" />;
-}
-
-type FilterSelectProps = {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
-};
-
-function FilterSelect({ label, value, onChange, options }: FilterSelectProps) {
-  return (
-    <label className="inline-flex items-center gap-1.5 px-2 py-1">
-      <span className="text-xs font-medium text-telkom-grey-500">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={selectClass}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+  return <span className="mx-0.5 hidden h-4 w-px bg-telkom-grey-200 sm:inline" />;
 }
