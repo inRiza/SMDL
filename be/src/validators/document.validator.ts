@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { DocumentCategory, DocumentStatus, FileFormat, DocumentSort } from "@prisma/client";
+import { DocumentStatus, FileFormat, DocumentSort } from "@prisma/client";
 
 export const DocumentListQuerySchema = z.object({
     q: z.string().trim().optional(),
-    category: z.nativeEnum(DocumentCategory).optional(),
+    category: z.string().trim().optional(),
     status: z.nativeEnum(DocumentStatus).optional(),
     fileFormat: z.nativeEnum(FileFormat).optional(),
     sort: z.nativeEnum(DocumentSort).optional().default(DocumentSort.newest),

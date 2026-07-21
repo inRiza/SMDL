@@ -1,8 +1,8 @@
-import type { DocumentStatus, FileFormat, Document, DocumentCategory, DocumentSort } from "@prisma/client";
+import type { DocumentStatus, FileFormat, DocumentSort } from "@prisma/client";
 
 export type DocumentListQuery = {
-    q?: string; // search query
-    category?: DocumentCategory;
+    q?: string;
+    category?: string;
     status?: DocumentStatus;
     fileFormat?: FileFormat;
     sort?: DocumentSort;
