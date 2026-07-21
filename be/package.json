@@ -7,7 +7,8 @@
     "db:generate": "prisma generate --schema=src/db/schema.prisma",
     "db:push": "prisma db push --schema=src/db/schema.prisma",
     "db:seed": "bun run src/db/seed.ts",
-    "db:setup": "bun run db:push && bun run db:seed",
+    "db:seed:auth": "bun run src/db/seed-auth.ts",
+    "db:setup": "bun run db:push && bun run db:seed && bun run db:seed:auth",
     "db:generate:schema": "prisma generate --schema=src/db/schema.prisma"
   },
   "dependencies": {
