@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import type { DocumentListItem } from "@/types/document.types";
 
 type WikiListItemProps = {
   document: DocumentListItem;
+  onCategoryClick?: (category: string) => void;
 };
 
 const statusLabel: Record<DocumentListItem["status"], string> = {
@@ -26,7 +29,7 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-export function WikiListItem({ document }: WikiListItemProps) {
+export function WikiListItem({ document, onCategoryClick }: WikiListItemProps) {
   return (
     <article className="group flex gap-4 border-b border-telkom-grey-200 py-5 last:border-b-0">
       <div className="hidden w-16 shrink-0 flex-col items-center gap-1 pt-0.5 sm:flex">
@@ -54,12 +57,19 @@ export function WikiListItem({ document }: WikiListItemProps) {
 
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-telkom-grey-500">
           {document.category && (
-            <Link
-              href={`/wiki?category=${encodeURIComponent(document.category)}`}
-              className="rounded-sm bg-telkom-grey-100 px-1.5 py-0.5 font-medium text-telkom-grey-700 transition-colors hover:bg-telkom-grey-200"
-            >
-              {document.category}
-            </Link>
+            onCategoryClick ? (
+              <button
+                type="button"
+                onClick={() => onCategoryClick(document.category!)}
+                className="cursor-pointer rounded-sm bg-telkom-grey-100 px-1.5 py-0.5 font-medium text-telkom-grey-700 transition-colors hover:bg-telkom-grey-200"
+              >
+                {document.category}
+              </button>
+            ) : (
+              <span className="rounded-sm bg-telkom-grey-100 px-1.5 py-0.5 font-medium text-telkom-grey-700">
+                {document.category}
+              </span>
+            )
           )}
 
           <span className="rounded-sm bg-telkom-grey-100 px-1.5 py-0.5 text-xs font-bold text-telkom-grey-700">

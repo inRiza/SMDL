@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { DocumentFilters } from "@/types/document.types";
 import { cn } from "@/lib/utils";
+import { useWikiSearch } from "./wiki-search-provider";
 
 type SearchFilterProps = {
   categories: string[];
@@ -36,16 +37,14 @@ const selectClass =
   "h-8 appearance-none rounded-sm border-0 bg-transparent py-0 pr-6 pl-0 text-sm text-telkom-grey-700 outline-none focus:ring-0";
 
 export function SearchFilter({ categories }: SearchFilterProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { navigate } = useWikiSearch();
 
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [category, setCategory] = useState(searchParams.get("category") ?? "");
   const [status, setStatus] = useState(searchParams.get("status") ?? "");
-  const [fileFormat, setFileFormat] = useState(
-    searchParams.get("fileFormat") ?? ""
-  );
+  const [fileFormat, setFileFormat] = useState(searchParams.get("fileFormat") ?? "");
   const [sort, setSort] = useState(searchParams.get("sort") ?? "newest");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -65,7 +64,7 @@ export function SearchFilter({ categories }: SearchFilterProps) {
       (searchParams.get("sort") && searchParams.get("sort") !== "newest")
   );
 
-  function applyFilters(next?: Partial<DocumentFilters>) {
+  function buildUrl(next?: Partial<DocumentFilters>) {
     const params = new URLSearchParams();
 
     const values = {
@@ -81,7 +80,11 @@ export function SearchFilter({ categories }: SearchFilterProps) {
     });
 
     params.set("page", "1");
-    router.push(`${pathname}?${params.toString()}`);
+    return `${pathname}?${params.toString()}`;
+  }
+
+  function applyFilters(next?: Partial<DocumentFilters>) {
+    navigate(buildUrl(next));
   }
 
   function resetFilters() {
@@ -90,32 +93,32 @@ export function SearchFilter({ categories }: SearchFilterProps) {
     setStatus("");
     setFileFormat("");
     setSort("newest");
-    router.push(pathname);
+    navigate(pathname);
   }
 
   return (
-    <div className="w-full border-b border-telkom-grey-200 bg-white">
+    <div className="w-full bg-white">
       <form
         onSubmit={(e) => {
           e.preventDefault();
           applyFilters();
         }}
       >
-        <div className="flex items-center gap-2 border-b border-telkom-grey-200 px-1 py-2">
-          <div className="relative min-w-0 flex-1">
+        <div className="flex items-center gap-2 p-4">
+          <div className="relative min-w-0 flex-1 border">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-telkom-grey-400" />
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Cari dokumen..."
-              className="h-10 border-0 bg-transparent pl-9 shadow-none focus-visible:ring-0"
+              className="h-8 border-0 bg-transparent pl-9 shadow-none focus-visible:ring-0"
             />
           </div>
 
           <Button
             type="submit"
             size="sm"
-            className="shrink-0 bg-telkom-red hover:bg-telkom-red-dark"
+            className="shrink-0 cursor-pointer bg-telkom-red hover:bg-telkom-red-dark py-4"
           >
             Cari
           </Button>
@@ -124,7 +127,7 @@ export function SearchFilter({ categories }: SearchFilterProps) {
             type="button"
             variant="ghost"
             size="sm"
-            className="shrink-0 gap-1.5 text-telkom-grey-600"
+            className="shrink-0 cursor-pointer gap-1.5 bg-telkom-grey-100 text-telkom-grey-600 hover:bg-telkom-grey-200 py-4"
             onClick={() => setShowFilters((prev) => !prev)}
           >
             <SlidersHorizontal className="size-3.5" />
@@ -194,7 +197,7 @@ export function SearchFilter({ categories }: SearchFilterProps) {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-telkom-grey-500 transition-colors hover:text-telkom-red"
+                  className="inline-flex cursor-pointer items-center gap-1 bg-telkom-grey-100 px-2 py-1 text-xs font-medium text-telkom-grey-500 transition-colors hover:bg-telkom-red/20 hover:text-telkom-red"
                 >
                   <X className="size-3" />
                   Reset

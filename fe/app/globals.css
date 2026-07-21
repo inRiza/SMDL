@@ -4,6 +4,34 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@keyframes float-search {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-grey {
+  0%,
+  100% {
+    background-color: var(--telkom-grey-100);
+  }
+  50% {
+    background-color: var(--telkom-grey-400);
+  }
+}
+
+.animate-float-search {
+  animation: float-search 2.2s ease-in-out infinite;
+}
+
+.animate-pulse-grey {
+  animation: pulse-grey 1.6s ease-in-out infinite;
+}
+
 :root {
   --telkom-red: #e42313;
   --telkom-red-dark: #c41e10;
@@ -41,8 +69,8 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--telkom-black);
   --sidebar-primary: var(--telkom-red);
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: var(--telkom-grey-100);

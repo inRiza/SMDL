@@ -1,11 +1,16 @@
-import { WikiListItem } from "./wiki-card";
+"use client";
+
 import type { DocumentListItem } from "@/types/document.types";
+import { useWikiSearch } from "./wiki-search-provider";
+import { WikiListItem } from "./wiki-card";
 
 type DocumentListProps = {
   documents: DocumentListItem[];
 };
 
 export function DocumentList({ documents }: DocumentListProps) {
+  const { navigate } = useWikiSearch();
+
   if (documents.length === 0) {
     return (
       <div className="border-y border-telkom-grey-200 py-16 text-center">
@@ -22,7 +27,13 @@ export function DocumentList({ documents }: DocumentListProps) {
   return (
     <div className="w-full border-t border-telkom-grey-200">
       {documents.map((document) => (
-        <WikiListItem key={document.id} document={document} />
+        <WikiListItem
+          key={document.id}
+          document={document}
+          onCategoryClick={(category) =>
+            navigate(`/wiki?category=${encodeURIComponent(category)}&page=1`)
+          }
+        />
       ))}
     </div>
   );

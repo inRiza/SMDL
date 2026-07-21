@@ -1,7 +1,7 @@
-import { Suspense } from "react";
 import { AppHeader } from "@/components/app/app-header";
 import { DocumentList } from "./components/document-list";
 import { SearchFilter } from "./components/search-filter";
+import { WikiResults } from "./components/wiki-results";
 import {
   fetchDocumentCategories,
   fetchDocuments,
@@ -34,6 +34,7 @@ function getFilter(
 export default async function WikiPage({ searchParams }: WikiPageProps) {
   const params = await searchParams;
   const filters = getFilter(params);
+  const filtersKey = JSON.stringify(filters);
 
   const [documentsResult, categories] = await Promise.all([
     fetchDocuments(filters),
@@ -42,41 +43,32 @@ export default async function WikiPage({ searchParams }: WikiPageProps) {
 
   return (
     <>
-      <AppHeader
-        title="Wiki"
-        description="Daftar dokumen legal yang dapat diakses"
-      />
-
       <div className="flex flex-1 flex-col">
-        <Suspense
-          fallback={
-            <div className="h-[52px] border-b border-telkom-grey-200 bg-white" />
-          }
-        >
-          <SearchFilter categories={categories} />
-        </Suspense>
+        <SearchFilter categories={categories} />
 
-        <div className="flex items-center justify-between border-b border-telkom-grey-200 px-4 py-3 md:px-6">
-          <p className="text-sm text-telkom-grey-600">
-            <span className="font-medium text-telkom-black">
-              {documentsResult.meta.total}
-            </span>{" "}
-            dokumen
-            {filters.q && (
-              <>
-                {" "}
-                untuk{" "}
-                <span className="font-medium text-telkom-black">
-                  &ldquo;{filters.q}&rdquo;
-                </span>
-              </>
-            )}
-          </p>
-        </div>
+        <WikiResults filtersKey={filtersKey}>
+          <div className="flex items-center justify-between border-b border-telkom-grey-200 px-4 py-3 md:px-6">
+            <p className="text-sm text-telkom-grey-600">
+              <span className="font-medium text-telkom-black">
+                {documentsResult.meta.total}
+              </span>{" "}
+              dokumen
+              {filters.q && (
+                <>
+                  {" "}
+                  untuk{" "}
+                  <span className="font-medium text-telkom-black">
+                    &ldquo;{filters.q}&rdquo;
+                  </span>
+                </>
+              )}
+            </p>
+          </div>
 
-        <div className="w-full px-4 md:px-6">
-          <DocumentList documents={documentsResult.data} />
-        </div>
+          <div className="w-full px-4 md:px-6">
+            <DocumentList documents={documentsResult.data} />
+          </div>
+        </WikiResults>
       </div>
     </>
   );
