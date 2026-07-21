@@ -4,7 +4,7 @@ export function About() {
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-telkom-red">
+            <p className="text-sm font-semibold uppercase text-telkom-red">
               Tentang SMDL
             </p>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-telkom-black sm:text-4xl">
@@ -17,7 +17,7 @@ export function About() {
             </p>
             <p className="mt-4 text-base leading-relaxed text-telkom-grey-600">
               Setiap dokumen terhubung dengan metadata, pemilik, organisasi, dan
-              hasil ekstraksi LER — memastikan informasi legal selalu mudah
+              hasil ekstraksi LER memastikan informasi legal selalu mudah
               ditemukan, terlindungi, dan dapat diaudit.
             </p>
           </div>

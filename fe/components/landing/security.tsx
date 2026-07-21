@@ -2,7 +2,7 @@ const securityPoints = [
   "Autentikasi wajib sebelum mengakses sumber daya apapun",
   "RBAC diterapkan pada setiap permintaan dokumen dan layanan",
   "Komunikasi client-server melalui HTTPS/TLS terenkripsi",
-  "Validasi file upload — format, ukuran, dan integritas",
+  "Validasi file upload dari format, ukuran, dan integritas",
   "LER dan SLM berjalan sepenuhnya di infrastruktur internal",
   "Log audit immutable yang tidak dapat dimodifikasi pengguna biasa",
 ];
@@ -13,7 +13,7 @@ export function Security() {
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
         <div className="grid items-start gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-telkom-red">
+            <p className="text-sm font-semibold uppercase text-telkom-red">
               Keamanan & Kepatuhan
             </p>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-telkom-black sm:text-4xl">

@@ -1,17 +1,9 @@
-import { AppHeader } from "@/components/app/app-header";
-import { PagePlaceholder } from "@/components/app/page-placeholder";
+import { TellsWorkspace } from "./components/tells-workspace";
 
 export default function TellsPage() {
   return (
-    <>
-      <AppHeader
-        title="TELLS"
-        description="Asisten inteligensi berbasis SLM"
-      />
-      <PagePlaceholder
-        title="TELLS Asisten Inteligensi"
-        description="Pencarian semantik, ringkasan dokumen, dan tanya jawab natural language."
-      />
-    </>
+    <div className="flex h-[calc(100svh-3.5rem)] min-h-0 flex-col overflow-hidden">
+      <TellsWorkspace />
+    </div>
   );
 }

@@ -1,5 +1,6 @@
-import type { DocumentListResponse, DocumentFilters } from "@/types/document.types";
-import { apiBeDocuments } from "../api.be";
+import type { DocumentListResponse, DocumentFilters, DocumentDetail } from "@/types/document.types";
+import { toDocumentDetail } from "@/lib/mock/document-ler";
+import { getApiBeDocuments } from "../api.be";
 
 function buildQuery(filters: DocumentFilters): string {
     const param = new URLSearchParams();
@@ -15,7 +16,7 @@ function buildQuery(filters: DocumentFilters): string {
 
 export async function fetchDocuments(filters: DocumentFilters = {}): Promise<DocumentListResponse> {
     const query = buildQuery(filters);
-    const res = await fetch(`${apiBeDocuments}?${query}`, {
+    const res = await fetch(`${getApiBeDocuments()}?${query}`, {
         cache: "no-store",
     });
 
@@ -27,7 +28,7 @@ export async function fetchDocuments(filters: DocumentFilters = {}): Promise<Doc
 }
 
 export async function fetchDocumentCategories(): Promise<string[]> {
-    const res = await fetch(`${apiBeDocuments}/categories`, {
+    const res = await fetch(`${getApiBeDocuments()}/categories`, {
         cache: "no-store",
     });
 
@@ -37,4 +38,13 @@ export async function fetchDocumentCategories(): Promise<string[]> {
 
     const json = await res.json();
     return json.data as string[];
+}
+
+export async function fetchDocumentById(id: string): Promise<DocumentDetail | null> {
+    const res = await fetchDocuments({ limit: 50 });
+
+    const document = res.data.find((item) => item.id === id);
+    if (!document) return null;
+
+    return toDocumentDetail(document);
 }

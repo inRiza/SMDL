@@ -5,17 +5,12 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   FileText,
-  LogOut,
   MessageSquare,
-  Settings,
-  User,
   Users,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -32,7 +27,8 @@ const mainNav = [
   { title: "TELLS", href: "/tells", icon: MessageSquare },
 ];
 
-const navItemClass = "!h-9 -mr-2 w-[calc(100%+0.5rem)] pr-3 data-active:bg-telkom-grey-100 data-active:font-semibold data-active:text-telkom-black data-active:shadow-none";
+const navItemClass =
+  "!h-9 -mr-2 w-[calc(100%+0.5rem)] pr-3 data-active:bg-telkom-grey-100 data-active:font-semibold data-active:text-telkom-black data-active:shadow-none";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -71,42 +67,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="border-t border-telkom-grey-200 px-2 py-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              render={<Link href="/profile" />}
-              isActive={isActive("/profile")}
-              tooltip="Profil"
-              className={navItemClass}
-            >
-              <User />
-              <span>Profil</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              render={<Link href="/profile" />}
-              tooltip="Pengaturan"
-              className={cn(navItemClass, "data-active:border-r-0")}
-            >
-              <Settings />
-              <span>Pengaturan</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              render={<Link href="/login" />}
-              tooltip="Keluar"
-              className={cn(navItemClass, "data-active:border-r-0")}
-            >
-              <LogOut />
-              <span>Keluar</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
 
       <SidebarRail />
     </Sidebar>

@@ -13,7 +13,7 @@ const features = [
   {
     title: "Legal Entity Recognition",
     description:
-      "Ekstraksi otomatis entitas legal — pihak terkait, nomor kontrak, tanggal, dan organisasi — langsung setelah dokumen diunggah.",
+      "Ekstraksi otomatis entitas legal pihak terkait, nomor kontrak, tanggal, dan organisasi langsung setelah dokumen diunggah.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6">
         <circle cx="12" cy="12" r="3" />
@@ -35,7 +35,7 @@ const features = [
   {
     title: "Kontrol Akses (RBAC)",
     description:
-      "Manajemen hak akses berbasis peran — Administrator, Owner, Viewer, dan Auditor — dengan prinsip least-privilege.",
+      "Manajemen hak akses berbasis peran Administrator, Owner, Viewer, dan Auditor dengan prinsip least-privilege.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6">
         <rect x="3" y="11" width="18" height="11" rx="2" />
@@ -44,7 +44,7 @@ const features = [
     ),
   },
   {
-    title: "TELLS — Asisten Inteligensi",
+    title: "TELLS (Asisten Inteligensi)",
     description:
       "Asisten berbasis SLM untuk pencarian semantik, ringkasan dokumen, dan tanya jawab natural language dalam bahasa Indonesia.",
     icon: (
@@ -68,7 +68,7 @@ const features = [
   {
     title: "Audit & Monitoring",
     description:
-      "Log audit immutable untuk setiap aktivitas sensitif — login, CRUD dokumen, perubahan akses, dan penggunaan TELLS.",
+      "Log audit immutable untuk setiap aktivitas sensitif login, CRUD dokumen, perubahan akses, dan penggunaan TELLS.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-6 w-6">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -95,7 +95,7 @@ export function Features() {
     <section id="fitur" className="bg-telkom-grey-50 py-20 lg:py-28">
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-telkom-red">
+          <p className="text-sm font-semibold uppercase text-telkom-red">
             Fitur Utama
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-telkom-black sm:text-4xl">

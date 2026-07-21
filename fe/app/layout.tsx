@@ -3,7 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SMDL — Sistem Manajemen Dokumen Legal | Telkom",
+  title: "SMDL",
   description:
     "Platform manajemen dokumen legal berbasis Legal Entity Recognition dengan kontrol akses untuk PT. Telekomunikasi Indonesia Tbk.",
 };
