@@ -6,17 +6,16 @@ import {
 import {
   DocumentCatalogService,
 } from "@/lib/rag/document-catalog.service";
-import { classifyQuery, isPureGreeting, wasGreetingIncluded } from "@/lib/rag/query.util";
+import { classifyQuery, isMetaQuery, isPureGreeting, wasGreetingIncluded } from "@/lib/rag/query.util";
+import { GREETING_REPLY, buildMetaReply } from "@/lib/tells/capability-reply";
 import { RetrievalService } from "@/lib/rag/retrieval.service";
 import { TellsConversationService } from "./tells.conversation.service";
 import type { TellsCitation, TellsChatResult } from "@/types/tells.types";
 import type { TellsChatInput } from "@/validators/tells.validator";
 
-const FALLBACK_REPLY =
-  "Maaf, TELLS sedang tidak dapat menghubungi model lokal. Coba lagi nanti, atau pastikan Ollama berjalan di mesin ini.";
+const FALLBACK_REPLY = "Maaf, TELLS sedang tidak dapat menghubungi model lokal. Coba lagi nanti, atau pastikan Ollama berjalan di mesin ini.";
 
-const NOT_FOUND_REPLY =
-  "Saya belum menemukan informasi yang cocok di dokumen SMDL. Coba tanyakan dengan kata kunci lain, misalnya nama pihak, jenis dokumen, atau topik kontrak.";
+const NOT_FOUND_REPLY = "Saya belum menemukan informasi yang cocok di dokumen SMDL. Coba tanyakan dengan kata kunci lain, misalnya nama pihak, jenis dokumen, atau topik kontrak.";
 
 export class TellsService {
   constructor(
@@ -32,8 +31,10 @@ export class TellsService {
 
     switch (intent) {
       case "greeting":
+        result = this.replyWithGreeting(input);
+        break;
       case "meta":
-        result = await this.replyWithoutRetrieval(input);
+        result = this.replyWithCapability(input);
         break;
       case "document_latest":
         result = await this.replyWithLatestDocuments(input);
@@ -168,7 +169,11 @@ ${context}`,
       }
 
       if (isPureGreeting(input.message)) {
-        return this.replyWithoutRetrieval(input);
+        return this.replyWithGreeting(input);
+      }
+
+      if (isMetaQuery(input.message)) {
+        return this.replyWithCapability(input);
       }
 
       return {
@@ -240,39 +245,22 @@ ${context}`,
     }
   }
 
-  private async replyWithoutRetrieval(
-    input: TellsChatInput
-  ): Promise<TellsChatResult> {
-    try {
-      const content = await chatWithOllama(
-        [
-          {
-            role: "system",
-            content:
-              "You are TELLS, assistant dokumen legal Telkom. Jawab ramah dan natural dalam Bahasa Indonesia. Jelaskan singkat bahwa kamu bisa membantu mencari dokumen, melihat dokumen terbaru, dan menjawab pertanyaan isi dokumen legal di SMDL.",
-          },
-          ...input.history.map((item) => ({
-            role: item.role,
-            content: item.content,
-          })),
-          { role: "user", content: input.message },
-        ],
-        { temperature: 0.4 }
-      );
+  private replyWithGreeting(_input: TellsChatInput): TellsChatResult {
+    return {
+      reply: GREETING_REPLY,
+      source: "ollama",
+      fallback: false,
+      citations: [],
+    };
+  }
 
-      return {
-        reply: content.trim(),
-        source: "ollama",
-        fallback: false,
-        citations: [],
-      };
-    } catch {
-      return {
-        reply: FALLBACK_REPLY,
-        source: "fallback",
-        fallback: true,
-        citations: [],
-      };
-    }
+  private replyWithCapability(input: TellsChatInput): TellsChatResult {
+    const greetingPrefix = wasGreetingIncluded(input.message) ? "Halo! " : "";
+    return {
+      reply: greetingPrefix + buildMetaReply(input.message),
+      source: "ollama",
+      fallback: false,
+      citations: [],
+    };
   }
 }

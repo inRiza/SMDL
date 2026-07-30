@@ -13,12 +13,15 @@ type OllamaChatResponse = {
   }>;
 };
 
+const LLM_TIMEOUT_MS = 90_000;
+
 export async function chatWithOllama(messages: ChatMessage[], options?: { temperature?: number }): Promise<string> {
   const res = await fetch(`${env.LLM_BASE_URL}/chat/completions`, {
     method: "POST",
-    headers: { 
-      "Content-Type": "application/json" 
+    headers: {
+      "Content-Type": "application/json",
     },
+    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
     body: JSON.stringify({
       model: env.LLM_MODEL,
       messages,
