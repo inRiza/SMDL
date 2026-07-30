@@ -4,6 +4,7 @@ import { authMiddleware } from "./lib/auth/auth.middleware";
 import { env } from "./lib/config/env.config";
 import { authRoute } from "./route/auth/auth.route";
 import { documentRoute } from "./route/document/document.route";
+import { organizationRoute } from "./route/organization/organization.route";
 import { tellsRoute } from "./route/tells/tells.route";
 import type { AppEnv } from "./types/hono";
 
@@ -19,10 +20,16 @@ app.use(
 
 app.use("*", authMiddleware);
 
+app.onError((err, c) => {
+  console.error(err);
+  return c.json({ error: "Internal server error" }, 500);
+});
+
 app.get("/health", (c) => c.json({ status: "ok" }));
 
 app.route("/api/auth", authRoute);
 app.route("/api/documents", documentRoute);
+app.route("/api/organizations", organizationRoute);
 app.route("/api/tells", tellsRoute);
 
 export default {
