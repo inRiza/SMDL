@@ -39,6 +39,32 @@ enum DocumentSort {
   title_desc
 }
 
+enum OrganizationSort {
+  newest
+  oldest
+  name_asc
+  name_desc
+}
+
+enum OrganizationType {
+  unit_kerja
+  divisi
+  vendor
+  mitra
+}
+
+enum OrganizationMemberStatus {
+  pending
+  accepted
+  declined
+}
+
+enum OrganizationAccessLevel {
+  owner
+  member
+  viewer
+}
+
 enum TellsMessageRole {
   user
   assistant
@@ -51,10 +77,47 @@ model User {
   role         UserRole  @default(viewer)
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
-  sessions     Session[]
+  sessions      Session[]
+  organizations Organization[]
 
   @@index([email])
   @@map("users")
+}
+
+model Organization {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  type        OrganizationType @default(unit_kerja)
+  ownerId     String           @map("owner_id") @db.Uuid
+  owner       User                 @relation(fields: [ownerId], references: [id])
+  documents   Document[]
+  members     OrganizationMember[]
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  @@index([name])
+  @@index([type])
+  @@index([createdAt])
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String                   @id @default(uuid()) @db.Uuid
+  organizationId String                   @map("organization_id") @db.Uuid
+  userId         String?                  @map("user_id") @db.Uuid
+  email          String
+  accessLevel    OrganizationAccessLevel    @default(member) @map("access_level")
+  status         OrganizationMemberStatus @default(pending)
+  invitedById    String                   @map("invited_by_id") @db.Uuid
+  createdAt      DateTime                 @default(now()) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @map("updated_at")
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@index([email])
+  @@map("organization_members")
 }
 
 model Session {
@@ -81,6 +144,7 @@ model Document {
   ownerId        String          @map("owner_id") @db.Uuid
   chunks         DocumentChunk[]
   organizationId String?         @map("organization_id") @db.Uuid
+  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   createdAt      DateTime        @default(now()) @map("created_at")
 
   @@index([title])
