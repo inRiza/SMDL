@@ -32,6 +32,78 @@
   animation: pulse-grey 1.6s ease-in-out infinite;
 }
 
+@keyframes wizard-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes wizard-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes wizard-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes verified-icon-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-wizard-slide-in-right {
+  animation: wizard-slide-in-right 0.28s ease-out both;
+}
+
+.animate-wizard-slide-in-left {
+  animation: wizard-slide-in-left 0.28s ease-out both;
+}
+
+.animate-wizard-scale-in {
+  animation: wizard-scale-in 0.32s ease-out both;
+}
+
+.animate-verified-icon {
+  animation: verified-icon-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.corner-float-square {
+  transition: transform 0.3s ease-out;
+}
+
+.group:hover .corner-float-square {
+  transform: translate(var(--hx, 0px), var(--hy, 0px));
+}
+
 :root {
   --telkom-red: #e42313;
   --telkom-red-dark: #c41e10;
