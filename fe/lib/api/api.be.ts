@@ -15,6 +15,10 @@ export function getApiBeDocuments() {
   return `${resolveApiBase()}/documents`;
 }
 
+export function getApiBeOrganizations() {
+  return `${resolveApiBase()}/organizations`;
+}
+
 export function getApiBeTells() {
   return `${resolveApiBase()}/tells`;
 }
