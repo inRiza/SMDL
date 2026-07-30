@@ -1,4 +1,5 @@
 # Technical Approach & System Design
+
 ## SMDL — Sistem Manajemen Dokumen Legal (LER + RAG-based Assistant)
 
 > Companion document to `PRD_SMDL.md`. This defines the concrete stack, data model, and RAG pipeline an implementation agent should follow. Constraints from the SRS that shape every decision here: **on-premise only for LER/SLM (DC-10)**, **HTTPS/TLS everywhere (DC-11)**, **RBAC enforced at every access point (DC-5)**, **audit everything (DC-6)**.
@@ -7,26 +8,30 @@
 
 ## 1. Stack Overview
 
-| Layer | Choice | Why |
-|---|---|---|
-| Frontend | **Next.js (App Router) + TypeScript** | Given |
-| Backend | **Hono** (Node.js runtime) | Given — lightweight, fast, good middleware model, works fine on a plain Node server (not tied to edge, important since we need on-prem) |
-| Primary DB | **PostgreSQL** | Given |
-| Vector/RAG store | **PostgreSQL + `pgvector` extension** | Same DB, no extra moving part — see §5 |
-| Object storage | **MinIO** (self-hosted, S3-compatible) | Keeps large binary files out of Postgres; on-prem; drop-in S3 SDK compatibility |
-| Job queue | **BullMQ + Redis** | Decouples upload from LER/embedding/SLM (must be async per NFR) |
-| Embedding model | **BAAI/bge-m3** (self-hosted) | Multilingual incl. Indonesian, strong retrieval performance, open-weight — see §7 |
-| LLM (TELLS + summarization) | **Qwen2.5-14B-Instruct** (or 7B if GPU-constrained), optionally **Sahabat-AI / SEA-LION** for stronger Bahasa Indonesia tone | Open-weight, self-hostable, strong multilingual + instruction following — see §8 |
-| NER (LER module) | **Fine-tuned IndoBERT / XLM-R token classifier**, LLM-prompt fallback | Purpose-built NER model is cheaper, faster, more precise than prompting an LLM for structured extraction — see §9 |
-| Model serving | **vLLM** (LLM) + **TEI / sentence-transformers server** (embeddings) | Both self-hostable, no external API calls |
-| Reverse proxy / TLS | **Nginx or Traefik** | TLS termination, satisfies DC-11 |
-| Auth | Session-based (httpOnly cookie) + RBAC middleware, pluggable for future SSO/AD (DS-3) | Simple now, extensible later |
+
+| Layer                       | Choice                                                                                                                       | Why                                                                                                                                     |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend                    | **Next.js (App Router) + TypeScript**                                                                                        | Given                                                                                                                                   |
+| Backend                     | **Hono** (Node.js runtime)                                                                                                   | Given — lightweight, fast, good middleware model, works fine on a plain Node server (not tied to edge, important since we need on-prem) |
+| Primary DB                  | **PostgreSQL**                                                                                                               | Given                                                                                                                                   |
+| Vector/RAG store            | **PostgreSQL +** `pgvector` **extension**                                                                                    | Same DB, no extra moving part — see §5                                                                                                  |
+| Object storage              | **MinIO** (self-hosted, S3-compatible)                                                                                       | Keeps large binary files out of Postgres; on-prem; drop-in S3 SDK compatibility                                                         |
+| Job queue                   | **BullMQ + Redis**                                                                                                           | Decouples upload from LER/embedding/SLM (must be async per NFR)                                                                         |
+| Embedding model             | **BAAI/bge-m3** (self-hosted)                                                                                                | Multilingual incl. Indonesian, strong retrieval performance, open-weight — see §7                                                       |
+| LLM (TELLS + summarization) | **Qwen2.5-14B-Instruct** (or 7B if GPU-constrained), optionally **Sahabat-AI / SEA-LION** for stronger Bahasa Indonesia tone | Open-weight, self-hostable, strong multilingual + instruction following — see §8                                                        |
+| NER (LER module)            | **Fine-tuned IndoBERT / XLM-R token classifier**, LLM-prompt fallback                                                        | Purpose-built NER model is cheaper, faster, more precise than prompting an LLM for structured extraction — see §9                       |
+| Model serving               | **vLLM** (LLM) + **TEI / sentence-transformers server** (embeddings)                                                         | Both self-hostable, no external API calls                                                                                               |
+| Reverse proxy / TLS         | **Nginx or Traefik**                                                                                                         | TLS termination, satisfies DC-11                                                                                                        |
+| Auth                        | Session-based (httpOnly cookie) + RBAC middleware, pluggable for future SSO/AD (DS-3)                                        | Simple now, extensible later                                                                                                            |
+
 
 **Everything in this stack can run fully on-premise with no outbound calls to third-party AI APIs** — this is the hard constraint (`DC-10`, security §5.3 of the SRS) and it is the single biggest architectural decision driving the embedding/LLM/NER choices below.
 
 ---
 
-## 2. High-Level Architecture
+
+
+## 2. High-Level Architecture 
 
 ```mermaid
 flowchart LR
@@ -77,7 +82,10 @@ flowchart LR
     API -->|vector + hybrid search| PG
 ```
 
+
+
 **Flow summary:**
+
 1. FE calls BE over HTTPS only.
 2. BE authenticates + authorizes every request (RBAC middleware runs before any handler).
 3. Every state-changing / sensitive request passes through an audit-logging middleware that writes to the `audit_log` table.
@@ -86,6 +94,8 @@ flowchart LR
 6. TELLS query → BE does RBAC-filtered hybrid retrieval from Postgres → sends retrieved context + query to the on-prem LLM → streams answer back.
 
 ---
+
+
 
 ## 3. Frontend (Next.js)
 
@@ -108,6 +118,8 @@ flowchart LR
 - **Streaming:** TELLS responses streamed via Server-Sent Events or the Fetch streaming API from Hono, rendered incrementally in the chat UI.
 
 ---
+
+
 
 ## 4. Backend (Hono)
 
@@ -150,14 +162,21 @@ flowchart LR
 
 ---
 
+
+
 ## 5. Database Design (PostgreSQL)
 
+
+
 ### 5.1 Why Postgres + pgvector instead of a dedicated vector DB
+
 - **Data residency:** everything stays in the one on-prem database — no separate vector DB service to secure/patch/backup.
 - **RBAC-filtered retrieval is a JOIN, not a two-step round trip.** With a standalone vector DB (Pinecone/Weaviate/Qdrant/Milvus), you'd first fetch candidate IDs from the vector store, then re-check permissions in Postgres — extra latency and a class of bugs where you accidentally leak a chunk before the permission check runs. With `pgvector`, the ACL check and the similarity search happen in the **same SQL query** (`WHERE` clause + `ORDER BY embedding <=> query_vector`), which is both faster and safer.
 - **Transactional consistency:** document metadata, ACLs, and embeddings update together in one transaction — no risk of the vector index drifting out of sync with the source of truth (a common failure mode with separate vector DBs).
 - **Operational simplicity:** one DB to back up, one DB to restore, matches NFR backup/recovery requirements directly.
 - Tradeoff being accepted: `pgvector` (IVFFlat/HNSW) doesn't scale as far as purpose-built vector DBs at hundreds-of-millions-of-vectors scale — but for a single corporate legal document corpus, this is well within Postgres's comfortable range (realistically low millions of chunks).
+
+
 
 ### 5.2 Core Schema (indicative, not exhaustive)
 
@@ -252,11 +271,14 @@ create table audit_log (
 ```
 
 **Notes for the implementing agent:**
+
 - `document_access` + `organization_members` together form the ACL used in every retrieval query's `WHERE` clause — never skip this join, even for TELLS.
 - `audit_log` should be inserted via a DB role/permission that only has `INSERT`, no `UPDATE`/`DELETE`, to satisfy "audit log tidak boleh diubah" at the DB layer, not just the app layer.
-- Use **`hnsw`** index (pgvector ≥0.5) over `ivfflat` for better recall/latency tradeoff at this document scale; requires periodic `VACUUM`/index maintenance same as any Postgres index — nothing exotic operationally.
+- Use `hnsw` index (pgvector ≥0.5) over `ivfflat` for better recall/latency tradeoff at this document scale; requires periodic `VACUUM`/index maintenance same as any Postgres index — nothing exotic operationally.
 
 ---
+
+
 
 ## 6. Document Ingestion Pipeline
 
@@ -270,11 +292,14 @@ create table audit_log (
 
 ---
 
+
+
 ## 7. Embedding Model — "What makes it RAG-friendly"
 
-**Recommendation: `BAAI/bge-m3`** (self-hosted via Hugging Face Text Embeddings Inference or a plain `sentence-transformers` server behind a small FastAPI/Node wrapper).
+**Recommendation:** `BAAI/bge-m3` (self-hosted via Hugging Face Text Embeddings Inference or a plain `sentence-transformers` server behind a small FastAPI/Node wrapper).
 
 Why this one specifically:
+
 - **Multilingual, including Indonesian** — critical since source documents and TELLS queries will be in Bahasa Indonesia (with legal terms often mixed Indonesian/English).
 - **Hybrid-friendly by design** — bge-m3 natively supports dense + sparse + multi-vector retrieval, but for MVP simplicity, use it purely as a dense embedding model and pair it with Postgres full-text search (`tsvector`) for the sparse/keyword side — see §10 hybrid retrieval.
 - **Open-weight, self-hostable, no license blocker for commercial on-prem use** — satisfies the "no external AI API" constraint outright, since the weights run inside Telkom's infrastructure.
@@ -284,11 +309,14 @@ Alternative if Indonesian-legal-domain accuracy needs a boost later: fine-tune `
 
 ---
 
+
+
 ## 8. LLM for TELLS (Chat + Summarization)
 
-**Recommendation: `Qwen2.5-14B-Instruct`** as the default; drop to `Qwen2.5-7B-Instruct` if GPU memory is constrained (fits comfortably on a single 24GB GPU quantized to 4-bit/AWQ).
+**Recommendation:** `Qwen2.5-14B-Instruct` as the default; drop to `Qwen2.5-7B-Instruct` if GPU memory is constrained (fits comfortably on a single 24GB GPU quantized to 4-bit/AWQ).
 
 Why:
+
 - Strong multilingual performance including Bahasa Indonesia, good instruction-following for constrained/RAG-style prompting (i.e., "answer only from the provided context, cite the source, say you don't know if the context doesn't cover it").
 - Open-weight, Apache-2.0-family license, runs entirely on-prem via **vLLM** — satisfies DC-10 outright.
 - Good JSON-mode / structured-output reliability, useful both for TELLS answer formatting and as a fallback extraction mode for LER (§9).
@@ -299,16 +327,20 @@ Why:
 
 ---
 
+
+
 ## 9. LER Module — NER Approach
 
 Two viable approaches; pragmatic answer is to start with the second, and only invest in the first once labeled data exists.
 
 **Option A (fine-tuned NER model) — better precision/cost, needs training data:**
+
 - Model: `IndoBERT` (`indobenchmark/indobert-base-p1`) or `XLM-RoBERTa` fine-tuned as a token-classification model on a legal-entity-tagged dataset (parties, dates, contract numbers, organizations, locations, document type).
 - Pros: fast (small model, CPU-viable), cheap to run at scale, deterministic, easy to evaluate with precision/recall per entity type.
 - Cons: needs a labeled training set — likely doesn't exist yet for Telkom's legal corpus; requires an annotation effort before this is viable.
 
 **Option B (LLM-prompted structured extraction) — usable from day one:**
+
 - Use the same on-prem LLM (Qwen2.5) with a fixed JSON schema prompt: extract `{parties: [], dates: [], contract_number, organizations: [], location, document_type}` from the document text (chunked if the doc is long, then merged).
 - Pros: zero training data needed, works immediately for MVP.
 - Cons: slower and more expensive per document than a small NER model at scale; needs stricter output validation (JSON schema validation + retry-on-malformed-output).
@@ -317,15 +349,17 @@ Two viable approaches; pragmatic answer is to start with the second, and only in
 
 ---
 
+
+
 ## 10. Retrieval Strategy (RAG for TELLS)
 
 **Hybrid retrieval, RBAC-filtered, at query time:**
 
 1. Embed the user's query with the same `bge-m3` model used for ingestion.
 2. Run **one SQL query** that does all of the following together:
-   - Vector similarity (`embedding <=> query_vector`, cosine distance via the `hnsw` index)
-   - Full-text keyword match (`content_tsv @@ plainto_tsquery('indonesian', :query)`) — combine scores (e.g., reciprocal rank fusion of the two rankings, or a weighted sum) for hybrid results
-   - **RBAC filter in the same `WHERE` clause:** join `documents` → `document_access` / `organization_members` to only include chunks from documents the requesting user can access. This is the piece that must never be skipped or done as an app-layer post-filter — do it in SQL so an unauthorized chunk is never even fetched into application memory.
+  - Vector similarity (`embedding <=> query_vector`, cosine distance via the `hnsw` index)
+  - Full-text keyword match (`content_tsv @@ plainto_tsquery('indonesian', :query)`) — combine scores (e.g., reciprocal rank fusion of the two rankings, or a weighted sum) for hybrid results
+  - **RBAC filter in the same** `WHERE` **clause:** join `documents` → `document_access` / `organization_members` to only include chunks from documents the requesting user can access. This is the piece that must never be skipped or done as an app-layer post-filter — do it in SQL so an unauthorized chunk is never even fetched into application memory.
 3. Take top-k (e.g., k=8–12) chunks after fusion.
 4. **Optional rerank step** (recommended once basic RAG is working): pass the top-k through a cross-encoder reranker (e.g., `bge-reranker-v2-m3`, also self-hostable) to reorder by true relevance before truncating to the final top-n (e.g., n=4–6) sent to the LLM — meaningfully improves answer quality over raw vector-similarity ordering alone, at a small extra latency cost.
 5. Assemble a prompt: system instruction ("answer only from the provided context; if the context doesn't answer the question, say so; cite the source document title/ID for each claim") + the retrieved chunks + the LER entity summary for those documents + the conversation history for that TELLS session.
@@ -336,6 +370,8 @@ This single design satisfies three SRS requirements simultaneously: RBAC-scoped 
 
 ---
 
+
+
 ## 11. Async Processing (Queue)
 
 - **BullMQ + Redis**, three queues: `ler-extraction`, `embedding`, `summarization`.
@@ -344,6 +380,8 @@ This single design satisfies three SRS requirements simultaneously: RBAC-scoped 
 - Workers run as separate Node processes from the API server (can scale horizontally independently of the API, useful since LER/embedding load is bursty around uploads).
 
 ---
+
+
 
 ## 12. Security Implementation Notes
 
@@ -355,6 +393,8 @@ This single design satisfies three SRS requirements simultaneously: RBAC-scoped 
 - All model-serving endpoints (embedding server, LLM server, NER server) bound to the internal network only — not exposed publicly, reachable only from the Hono backend/workers.
 
 ---
+
+
 
 ## 13. Deployment Topology (on-prem)
 
@@ -393,20 +433,108 @@ flowchart TB
     BE --> TEI
 ```
 
+
+
 - Suggested minimum footprint: 1 GPU node (24GB+ VRAM) for `vLLM` + embedding + NER serving, 1 app node (FE + BE + workers, containerized), 1 data node (Postgres + Redis + MinIO) — can consolidate onto fewer physical machines for MVP, split later as load grows.
 - All inter-node traffic on an internal network segment; only the reverse proxy is internet/corporate-network facing.
 - Container orchestration: Docker Compose is sufficient for MVP; migrate to k8s only if/when multi-node scaling is actually needed (avoid adopting k8s complexity prematurely).
 
 ---
 
+
+
 ## 14. Summary Decision Table
 
-| Decision | Choice | Key reason |
-|---|---|---|
-| Vector store | pgvector inside Postgres | RBAC-joined retrieval in one query, one DB to operate |
-| Embedding model | bge-m3 | Multilingual/Indonesian, self-hostable, no license/API blocker |
-| LLM | Qwen2.5-14B/7B-Instruct via vLLM | Self-hostable, strong Indonesian support, good structured output |
-| NER/LER | LLM-prompted JSON extraction now → fine-tuned IndoBERT later | Usable day one, clear no-waste upgrade path |
-| Queue | BullMQ + Redis | Decouples heavy AI jobs from request path, satisfies async NFR |
-| Object storage | MinIO | Keeps binaries out of Postgres, S3-compatible, on-prem |
-| Reranker (optional) | bge-reranker-v2-m3 | Meaningful quality bump on top-k before hitting the LLM |
+
+| Decision            | Choice                                                       | Key reason                                                       |
+| ------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Vector store        | pgvector inside Postgres                                     | RBAC-joined retrieval in one query, one DB to operate            |
+| Embedding model     | bge-m3                                                       | Multilingual/Indonesian, self-hostable, no license/API blocker   |
+| LLM                 | Qwen2.5-14B/7B-Instruct via vLLM                             | Self-hostable, strong Indonesian support, good structured output |
+| NER/LER             | LLM-prompted JSON extraction now → fine-tuned IndoBERT later | Usable day one, clear no-waste upgrade path                      |
+| Queue               | BullMQ + Redis                                               | Decouples heavy AI jobs from request path, satisfies async NFR   |
+| Object storage      | MinIO                                                        | Keeps binaries out of Postgres, S3-compatible, on-prem           |
+| Reranker (optional) | bge-reranker-v2-m3                                           | Meaningful quality bump on top-k before hitting the LLM          |
+
+
+---
+
+## 15. UI Design Guidelines (Frontend)
+
+Reference implementation lives in `fe/app/globals.css`, `fe/components/landing/`, and shared app components. Agents building UI should follow these rules so new screens match the existing SMDL look.
+
+### 15.1 Brand & color
+
+| Token | Usage |
+| ----- | ----- |
+| `telkom-red` (`#E42313`) | Primary actions, active states, accents, links on hover |
+| `telkom-red-dark` | Primary button hover |
+| `telkom-black` | Headings, primary text |
+| `telkom-grey-50` … `telkom-grey-800` | Surfaces, borders, secondary text |
+| White | Main app background, cards, modals |
+
+Do not introduce new accent colors for core flows. Status colors (success/error) are allowed sparingly.
+
+### 15.2 Typography & spacing
+
+- Page titles: `text-sm font-semibold` in app header; section titles `text-lg`–`text-xl font-semibold`.
+- Body: `text-sm`, secondary copy `text-telkom-grey-600`.
+- **Form fields:** label above control, **`flex flex-col gap-2`** between label and input.
+- List/filter bars: same horizontal rhythm as Wiki/documents (`px-4 md:px-6`, `border-telkom-grey-200` dividers).
+
+### 15.3 Radius & controls
+
+| Element | Class |
+| ------- | ----- |
+| Text inputs, textareas, selects, cards in app | `rounded-xs` |
+| Primary / secondary action buttons in app & wizards | **`rounded-none`** (square) |
+| Landing marketing buttons | `rounded-sm` (slightly softer) |
+
+- Textareas: **`resize-none`**, fixed min-height (e.g. `min-h-28`).
+- Inputs in app: height `h-10`, border `border-telkom-grey-200`, focus ring `ring-telkom-red/10`.
+
+### 15.4 Corner red accents (decorative)
+
+Used on **landing hero** (soft blobs) and **selectable tiles** (scattered squares). For squares:
+
+- Component: `fe/components/app/corner-red-grid.tsx` → `CornerRedGridPair`.
+- **Not a filled grid** — use **random-sized squares** scattered in **top-left** and **bottom-right** corners only.
+- Square sizes ~8–15px, spread loosely across an ~80px corner area, opacity ~0.07–0.15, `bg-telkom-red`.
+- **Hover:** squares **move slightly toward each other** (converge) via `.corner-float-square` + CSS vars `--hx` / `--hy` — **no infinite float animation**.
+- Content label stays **`relative z-10`** above decoration.
+
+Landing hero (large sections) uses soft blobs:
+
+```tsx
+<div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-telkom-red/5" />
+<div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-telkom-grey-100" />
+```
+
+Use **blobs** for hero/section backgrounds; use **scattered corner squares** for interactive tiles and wizard choices.
+
+### 15.5 Wizards & modals (e.g. create organization)
+
+- Centered modal, `rounded-xs` shell, backdrop `bg-black/45` + light blur.
+- Step indicator + progress bar at top; **Back** control **top-left** (not footer).
+- Footer: single primary **`Lanjut`** / **`rounded-none`** button, right-aligned; avoid duplicate skip actions unless PRD requires.
+- Step content: slide animation (`animate-wizard-slide-in-right/left` in `globals.css`).
+- Reuse `WizardField`, `wizardInputClass`, `wizardTextareaClass`, `wizardPrimaryBtnClass` from `fe/app/(app)/organizations/components/wizard-step-indicator.tsx`.
+
+### 15.6 Lists, cards & filters
+
+- Document/org lists: URL-driven filters; search bar pattern from `fe/app/(app)/wiki/components/search-filter.tsx`.
+- Organization cards: text-first (name prominent), metadata chips `bg-telkom-grey-100`, no icon clutter unless PRD asks.
+- Empty states: centered, `border-y border-telkom-grey-200 py-16`.
+
+### 15.7 Do / don’t
+
+| Do | Don’t |
+| -- | ----- |
+| Match Wiki filter/search UX for new list pages | Invent new filter UI per page |
+| Keep decorative red **scattered in corners** | Cover entire cards or use solid square grids |
+| Use design tokens from `globals.css` | Hard-code random hex colors |
+| Square primary buttons in app (`rounded-none`) | Mix rounded-xl buttons in app shell |
+| `credentials: "include"` on mutating API calls | Forget session cookies on POST |
+
+When in doubt, copy patterns from **Wiki** (lists), **organizations wizard** (multi-step), or **landing hero** (marketing accents).
+
