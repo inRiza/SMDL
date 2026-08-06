@@ -9,7 +9,7 @@
     "db:seed": "bun run src/db/seed.ts",
     "db:seed:auth": "bun run src/db/seed-auth.ts",
     "db:seed:organizations": "bun run src/db/seed-organizations.ts",
-    "db:setup": "bun run db:push && bun run db:seed && bun run db:seed:auth && bun run db:seed:organizations",
+    "db:setup": "bun run db:push && bun run db:seed:auth && bun run db:seed && bun run db:seed:organizations",
     "db:generate:schema": "prisma generate --schema=src/db/schema.prisma"
   },
   "dependencies": {
