@@ -1,4 +1,3 @@
-import { AppHeader } from "@/components/app/app-header";
 import { DocumentList } from "./components/document-list";
 import { SearchFilter } from "./components/search-filter";
 import { WikiResults } from "./components/wiki-results";
@@ -42,34 +41,32 @@ export default async function WikiPage({ searchParams }: WikiPageProps) {
   ]);
 
   return (
-    <>
-      <div className="flex flex-1 flex-col">
-        <SearchFilter categories={categories} />
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-telkom-grey-50">
+      <SearchFilter categories={categories} />
 
-        <WikiResults filtersKey={filtersKey}>
-          <div className="flex items-center justify-between border-b border-telkom-grey-200 px-4 py-3 md:px-6">
-            <p className="text-sm text-telkom-grey-600">
-              <span className="font-medium text-telkom-black">
-                {documentsResult.meta.total}
-              </span>{" "}
-              dokumen
-              {filters.q && (
-                <>
-                  {" "}
-                  untuk{" "}
-                  <span className="font-medium text-telkom-black">
-                    &ldquo;{filters.q}&rdquo;
-                  </span>
-                </>
-              )}
-            </p>
-          </div>
+      <WikiResults filtersKey={filtersKey}>
+        <div className="flex items-center justify-between px-4 py-3 md:px-6">
+          <p className="text-sm text-telkom-grey-600">
+            <span className="font-medium text-telkom-grey-900">
+              {documentsResult.meta.total}
+            </span>{" "}
+            dokumen
+            {filters.q && (
+              <>
+                {" "}
+                untuk{" "}
+                <span className="font-medium text-telkom-grey-900">
+                  &ldquo;{filters.q}&rdquo;
+                </span>
+              </>
+            )}
+          </p>
+        </div>
 
-          <div className="w-full px-4 md:px-6">
-            <DocumentList documents={documentsResult.data} />
-          </div>
-        </WikiResults>
-      </div>
-    </>
+        <div className="w-full px-4 md:px-6">
+          <DocumentList documents={documentsResult.data} />
+        </div>
+      </WikiResults>
+    </div>
   );
 }
