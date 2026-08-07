@@ -11,6 +11,8 @@ export type LerEntity = {
   confidence: number;
 };
 
+export type DocumentVisibility = "public" | "organization";
+
 export type DocumentListItem = {
   id: string;
   title: string;
@@ -19,6 +21,8 @@ export type DocumentListItem = {
   fileFormat: FileFormat;
   fileSizeBytes: string;
   status: DocumentStatus;
+  visibility: DocumentVisibility;
+  organizationId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -26,7 +30,6 @@ export type DocumentListItem = {
 export type DocumentDetail = DocumentListItem & {
   storageKey: string;
   ownerId: string;
-  organizationId: string | null;
   lerStatus: "pending" | "completed" | "failed";
   lerEntities: LerEntity[];
   lerExtractedAt: string | null;
