@@ -7,21 +7,18 @@ import {
   fetchTellsConversations,
 } from "@/lib/api/tells/route";
 import type { TellsConversationSummary, TellsMessage } from "@/types/tells.types";
+import { cn } from "@/lib/utils";
 import { TellsChat } from "./tells-chat";
 import { TellsConversationSidebar } from "./tells-conversation-sidebar";
-
-const WELCOME_MESSAGE: TellsMessage = {
-  role: "assistant",
-  content: "Halo! Saya TELLS. Tanyakan informasi dari dokumen legal",
-};
 
 export function TellsWorkspace() {
   const [conversations, setConversations] = useState<TellsConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [initialMessages, setInitialMessages] = useState<TellsMessage[]>([WELCOME_MESSAGE]);
+  const [initialMessages, setInitialMessages] = useState<TellsMessage[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(true);
 
   const refreshConversations = useCallback(async () => {
     const data = await fetchTellsConversations();
@@ -36,7 +33,7 @@ export function TellsWorkspace() {
 
   function startNewConversation() {
     setActiveConversationId(null);
-    setInitialMessages([WELCOME_MESSAGE]);
+    setInitialMessages([]);
   }
 
   async function openConversation(id: string) {
@@ -44,6 +41,7 @@ export function TellsWorkspace() {
 
     setLoadingConversation(true);
     setActiveConversationId(id);
+    setInitialMessages([]);
 
     try {
       const detail = await fetchTellsConversation(id);
@@ -105,25 +103,41 @@ export function TellsWorkspace() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
-      <TellsConversationSidebar
-        conversations={conversations}
-        activeId={activeConversationId}
-        loading={loadingHistory}
-        deletingId={deletingId}
-        onSelect={openConversation}
-        onNew={startNewConversation}
-        onDelete={handleDeleteConversation}
-      />
+    <div className="relative h-full min-h-0 w-full flex-1 overflow-hidden bg-telkom-grey-100">
+      <div
+        className={cn(
+          "absolute inset-0 overflow-hidden",
+          historyOpen
+            ? "grid grid-rows-[11rem_minmax(0,1fr)] md:grid-cols-[18rem_minmax(0,1fr)] md:grid-rows-none"
+            : "grid grid-rows-1 md:grid-cols-1"
+        )}
+      >
+        {historyOpen && (
+          <TellsConversationSidebar
+            open={historyOpen}
+            onToggle={() => setHistoryOpen((prev) => !prev)}
+            conversations={conversations}
+            activeId={activeConversationId}
+            loading={loadingHistory}
+            deletingId={deletingId}
+            onSelect={openConversation}
+            onNew={startNewConversation}
+            onDelete={handleDeleteConversation}
+          />
+        )}
 
-      <TellsChat
-        key={activeConversationId ?? "new"}
-        conversationId={activeConversationId}
-        initialMessages={initialMessages}
-        loadingConversation={loadingConversation}
-        onConversationCreated={handleConversationCreated}
-        onConversationUpdated={handleNewConversationPersisted}
-      />
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-white md:m-2 md:ml-0 md:rounded-xl">
+          <TellsChat
+            conversationId={activeConversationId}
+            initialMessages={initialMessages}
+            loadingConversation={loadingConversation}
+            historyOpen={historyOpen}
+            onToggleHistory={() => setHistoryOpen((prev) => !prev)}
+            onConversationCreated={handleConversationCreated}
+            onConversationUpdated={handleNewConversationPersisted}
+          />
+        </div>
+      </div>
     </div>
   );
 }

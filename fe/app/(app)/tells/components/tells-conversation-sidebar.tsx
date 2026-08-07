@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquarePlus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageSquarePlus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { TellsConversationSummary } from "@/types/tells.types";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,8 @@ function formatRelativeTime(value: string) {
 }
 
 type TellsConversationSidebarProps = {
+  open: boolean;
+  onToggle: () => void;
   conversations: TellsConversationSummary[];
   activeId: string | null;
   loading?: boolean;
@@ -34,6 +36,8 @@ type TellsConversationSidebarProps = {
 };
 
 export function TellsConversationSidebar({
+  open,
+  onToggle,
   conversations,
   activeId,
   loading = false,
@@ -42,34 +46,52 @@ export function TellsConversationSidebar({
   onNew,
   onDelete,
 }: TellsConversationSidebarProps) {
+  if (!open) return null;
+
   return (
-    <aside className="flex h-auto max-h-48 shrink-0 flex-col overflow-hidden border-b border-telkom-grey-200 bg-white md:h-full md:max-h-none md:w-72 md:border-r md:border-b-0">
-      <div className="flex shrink-0 items-center justify-between border-b border-telkom-grey-200 px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold text-telkom-black">Riwayat</p>
-          <p className="text-[11px] text-telkom-grey-500">Percakapan TELLS</p>
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden bg-telkom-grey-100">
+      <div className="flex shrink-0 items-center justify-between px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-telkom-grey-900">Riwayat</p>
+          <p className="text-xs text-telkom-grey-500">Percakapan TELLS</p>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onNew}
-          className="h-8 cursor-pointer gap-1.5 border-telkom-grey-200 text-xs"
-        >
-          <MessageSquarePlus className="size-3.5" />
-          Baru
-        </Button>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={onNew}
+            className="h-8 cursor-pointer gap-1.5 text-xs text-telkom-grey-600"
+          >
+            <MessageSquarePlus className="size-3.5" />
+            Baru
+          </Button>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            onClick={onToggle}
+            className="text-telkom-grey-500"
+            aria-label="Sembunyikan riwayat"
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+        </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3"
+        onWheel={(e) => e.stopPropagation()}
+      >
         {loading ? (
-          <p className="px-4 py-6 text-xs text-telkom-grey-500">Memuat riwayat...</p>
+          <p className="px-2 py-4 text-xs text-telkom-grey-500">Memuat riwayat...</p>
         ) : conversations.length === 0 ? (
-          <p className="px-4 py-6 text-xs leading-relaxed text-telkom-grey-500">
+          <p className="px-2 py-4 text-xs leading-relaxed text-telkom-grey-500">
             Belum ada percakapan tersimpan. Mulai chat baru untuk menyimpan riwayat di sini.
           </p>
         ) : (
-          <ul className="divide-y divide-telkom-grey-200">
+          <ul className="space-y-1">
             {conversations.map((conversation) => {
               const isActive = conversation.id === activeId;
               const isDeleting = deletingId === conversation.id;
@@ -78,21 +100,20 @@ export function TellsConversationSidebar({
                 <li key={conversation.id}>
                   <div
                     className={cn(
-                      "group flex items-stretch transition-colors hover:bg-telkom-grey-50",
-                      isActive &&
-                        "border-r-[3px] border-telkom-red bg-telkom-grey-100 hover:bg-telkom-grey-100"
+                      "group flex items-stretch rounded-lg transition-colors hover:bg-white/80",
+                      isActive && "bg-white"
                     )}
                   >
                     <button
                       type="button"
                       onClick={() => onSelect(conversation.id)}
                       disabled={isDeleting}
-                      className="min-w-0 flex-1 px-4 py-3 text-left"
+                      className="min-w-0 flex-1 px-3 py-2.5 text-left"
                     >
-                      <p className="line-clamp-2 text-sm font-medium text-telkom-black">
+                      <p className="line-clamp-2 text-sm font-medium text-telkom-grey-900">
                         {conversation.title}
                       </p>
-                      <p className="mt-1 text-[11px] text-telkom-grey-500">
+                      <p className="mt-0.5 text-xs text-telkom-grey-500">
                         {formatRelativeTime(conversation.updatedAt)}
                       </p>
                     </button>
@@ -105,7 +126,7 @@ export function TellsConversationSidebar({
                         event.stopPropagation();
                         onDelete(conversation.id);
                       }}
-                      className="flex shrink-0 items-center px-3 text-telkom-grey-400 opacity-100 transition-opacity hover:text-telkom-red md:opacity-0 md:group-hover:opacity-100 disabled:opacity-40"
+                      className="flex shrink-0 items-center px-2.5 text-telkom-grey-400 opacity-100 transition-colors hover:text-telkom-red md:opacity-0 md:group-hover:opacity-100 disabled:opacity-40"
                     >
                       <Trash2 className="size-3.5" />
                     </button>
@@ -117,5 +138,26 @@ export function TellsConversationSidebar({
         )}
       </div>
     </aside>
+  );
+}
+
+export function TellsHistoryToggle({
+  onClick,
+  className,
+}: {
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      className={cn("gap-1.5 text-telkom-grey-600", className)}
+    >
+      <ChevronRight className="size-4" />
+      Riwayat
+    </Button>
   );
 }
