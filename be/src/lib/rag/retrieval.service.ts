@@ -1,4 +1,8 @@
 import { prismaClient } from "@/lib/db/prisma";
+import {
+  buildDocumentAccessWhere,
+  getAccessibleOrganizationIds,
+} from "@/lib/document/document-access";
 import { extractSearchTerms } from "./query.util";
 
 const MIN_RELEVANCE_SCORE = 0.28;
@@ -57,23 +61,34 @@ function scoreChunk(input: {
 }
 
 export class RetrievalService {
-  async search(query: string): Promise<RetrievalHit[]> {
+  async search(query: string, userId: string): Promise<RetrievalHit[]> {
     const terms = extractSearchTerms(query);
     const searchTerms = terms.length > 0 ? terms : [query.trim().toLowerCase()].filter(Boolean);
+    const orgIds = await getAccessibleOrganizationIds(userId);
+    const accessWhere = buildDocumentAccessWhere(userId, orgIds);
 
     const chunks = await prismaClient.documentChunk.findMany({
       where: {
-        OR:
-          searchTerms.length > 0
-            ? searchTerms.flatMap((term) => [
-                { content: { contains: term, mode: "insensitive" as const } },
-                { document: { title: { contains: term, mode: "insensitive" as const } } },
-                { document: { description: { contains: term, mode: "insensitive" as const } } },
-              ])
-            : [{ content: { contains: query, mode: "insensitive" as const } }],
-        document: {
-          status: { in: ["ready", "ler_failed"] },
-        },
+        AND: [
+          {
+            OR:
+              searchTerms.length > 0
+                ? searchTerms.flatMap((term) => [
+                    { content: { contains: term, mode: "insensitive" as const } },
+                    { document: { title: { contains: term, mode: "insensitive" as const } } },
+                    { document: { description: { contains: term, mode: "insensitive" as const } } },
+                  ])
+                : [{ content: { contains: query, mode: "insensitive" as const } }],
+          },
+          {
+            document: {
+              AND: [
+                accessWhere,
+                { status: { in: ["ready", "ler_failed"] } },
+              ],
+            },
+          },
+        ],
       },
       take: 40,
       include: {
