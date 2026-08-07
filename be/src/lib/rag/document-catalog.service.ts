@@ -1,4 +1,8 @@
 import { prismaClient } from "@/lib/db/prisma";
+import {
+  buildDocumentAccessWhere,
+  getAccessibleOrganizationIds,
+} from "@/lib/document/document-access";
 import type { TellsCitation } from "@/types/tells.types";
 import { extractSearchTerms } from "./query.util";
 
@@ -37,10 +41,19 @@ function formatDate(date: Date) {
 }
 
 export class DocumentCatalogService {
-  async getLatest(limit = 3) {
+  private async getAccessWhere(userId: string) {
+    const orgIds = await getAccessibleOrganizationIds(userId);
+    return buildDocumentAccessWhere(userId, orgIds);
+  }
+
+  async getLatest(userId: string, limit = 3) {
+    const accessWhere = await this.getAccessWhere(userId);
     const rows = await prismaClient.document.findMany({
       where: {
-        status: { in: ["ready", "ler_failed", "processing"] },
+        AND: [
+          accessWhere,
+          { status: { in: ["ready", "ler_failed", "processing"] } },
+        ],
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -62,23 +75,29 @@ export class DocumentCatalogService {
     }));
   }
 
-  async searchMetadata(query: string, limit = 5) {
+  async searchMetadata(userId: string, query: string, limit = 5) {
     const terms = extractSearchTerms(query);
+    const accessWhere = await this.getAccessWhere(userId);
 
     const rows = await prismaClient.document.findMany({
       where: {
-        status: { in: ["ready", "ler_failed"] },
-        OR:
-          terms.length > 0
-            ? terms.flatMap((term) => [
-                { title: { contains: term, mode: "insensitive" as const } },
-                { description: { contains: term, mode: "insensitive" as const } },
-                { category: { contains: term, mode: "insensitive" as const } },
-              ])
-            : [
-                { title: { contains: query, mode: "insensitive" as const } },
-                { description: { contains: query, mode: "insensitive" as const } },
-              ],
+        AND: [
+          accessWhere,
+          {
+            status: { in: ["ready", "ler_failed"] },
+            OR:
+              terms.length > 0
+                ? terms.flatMap((term) => [
+                    { title: { contains: term, mode: "insensitive" as const } },
+                    { description: { contains: term, mode: "insensitive" as const } },
+                    { category: { contains: term, mode: "insensitive" as const } },
+                  ])
+                : [
+                    { title: { contains: query, mode: "insensitive" as const } },
+                    { description: { contains: query, mode: "insensitive" as const } },
+                  ],
+          },
+        ],
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -100,9 +119,12 @@ export class DocumentCatalogService {
     }));
   }
 
-  async countDocuments() {
+  async countDocuments(userId: string) {
+    const accessWhere = await this.getAccessWhere(userId);
     return prismaClient.document.count({
-      where: { status: { in: ["ready", "ler_failed", "processing"] } },
+      where: {
+        AND: [accessWhere, { status: { in: ["ready", "ler_failed", "processing"] } }],
+      },
     });
   }
 
