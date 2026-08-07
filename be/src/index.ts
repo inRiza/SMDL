@@ -6,6 +6,7 @@ import { authRoute } from "./route/auth/auth.route";
 import { documentRoute } from "./route/document/document.route";
 import { organizationRoute } from "./route/organization/organization.route";
 import { tellsRoute } from "./route/tells/tells.route";
+import { userRoute } from "./route/user/user.route";
 import type { AppEnv } from "./types/hono";
 
 const app = new Hono<AppEnv>();
@@ -30,6 +31,7 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 app.route("/api/auth", authRoute);
 app.route("/api/documents", documentRoute);
 app.route("/api/organizations", organizationRoute);
+app.route("/api/users", userRoute);
 app.route("/api/tells", tellsRoute);
 
 export default {
