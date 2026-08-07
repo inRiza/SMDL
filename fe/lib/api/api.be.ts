@@ -27,6 +27,10 @@ export function getApiBeAuth() {
   return `${resolveApiBase()}/auth`;
 }
 
+export function getApiBeUsers() {
+  return `${resolveApiBase()}/users`;
+}
+
 // backward compat for server imports
 export const apiBe = process.env.API_INTERNAL_URL
   ? `${process.env.API_INTERNAL_URL}/api`

@@ -58,7 +58,12 @@ function buildEntities(document: DocumentListItem): LerEntity[] {
   return base;
 }
 
-export function toDocumentDetail(document: DocumentListItem): DocumentDetail {
+export function toDocumentDetail(
+  document: DocumentListItem & {
+    storageKey?: string;
+    ownerId?: string;
+  }
+): DocumentDetail {
   const lerStatus =
     document.status === "processing"
       ? "pending"
@@ -68,9 +73,10 @@ export function toDocumentDetail(document: DocumentListItem): DocumentDetail {
 
   return {
     ...document,
-    storageKey: `docs/${document.id}.${document.fileFormat}`,
-    ownerId: MOCK_OWNER,
-    organizationId: MOCK_ORG,
+    storageKey: document.storageKey ?? `docs/${document.id}.${document.fileFormat}`,
+    ownerId: document.ownerId ?? MOCK_OWNER,
+    organizationId: document.organizationId ?? null,
+    visibility: document.visibility ?? "public",
     lerStatus,
     lerEntities: buildEntities(document),
     lerExtractedAt:
