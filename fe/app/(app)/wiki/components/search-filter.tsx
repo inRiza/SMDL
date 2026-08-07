@@ -95,14 +95,14 @@ export function SearchFilter({ categories }: SearchFilterProps) {
   }
 
   return (
-    <div className="w-full border-b border-telkom-grey-200 bg-white">
+    <div className="w-full bg-white">
       <form
         onSubmit={(e) => {
           e.preventDefault();
           applyFilters();
         }}
       >
-        <div className="flex items-center gap-2 border-b border-telkom-grey-200 px-4 py-2">
+        <div className="flex items-center gap-2 px-4 py-2">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-telkom-grey-400" />
             <Input
