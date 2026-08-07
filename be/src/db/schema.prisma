@@ -14,6 +14,11 @@ enum UserRole {
   auditor
 }
 
+enum DocumentVisibility {
+  public
+  organization
+}
+
 enum DocumentStatus {
   processing
   ready
@@ -72,6 +77,7 @@ enum TellsMessageRole {
 
 model User {
   id           String    @id @default(uuid()) @db.Uuid
+  name         String    @default("") @map("name")
   email        String    @unique @map("email")
   passwordHash String    @map("password_hash")
   role         UserRole  @default(viewer)
@@ -79,8 +85,10 @@ model User {
   updatedAt    DateTime  @updatedAt @map("updated_at")
   sessions      Session[]
   organizations Organization[]
+  organizationMemberships OrganizationMember[]
 
   @@index([email])
+  @@index([name])
   @@map("users")
 }
 
@@ -93,12 +101,14 @@ model Organization {
   owner       User                 @relation(fields: [ownerId], references: [id])
   documents   Document[]
   members     OrganizationMember[]
+  activities  OrganizationActivity[]
   createdAt   DateTime             @default(now()) @map("created_at")
   updatedAt   DateTime             @updatedAt @map("updated_at")
 
   @@index([name])
   @@index([type])
   @@index([createdAt])
+  @@index([ownerId])
   @@map("organizations")
 }
 
@@ -113,11 +123,27 @@ model OrganizationMember {
   createdAt      DateTime                 @default(now()) @map("created_at")
   updatedAt      DateTime                 @updatedAt @map("updated_at")
   organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@unique([organizationId, email])
   @@index([organizationId])
   @@index([email])
   @@map("organization_members")
+}
+
+model OrganizationActivity {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  actorId        String?      @map("actor_id") @db.Uuid
+  actorName      String       @map("actor_name")
+  action         String
+  summary        String
+  metadata       Json?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("organization_activities")
 }
 
 model Session {
@@ -139,8 +165,9 @@ model Document {
   category       String?
   fileFormat     FileFormat      @map("file_format")
   fileSizeBytes  BigInt          @map("file_size_bytes")
-  status         DocumentStatus  @default(processing)
-  storageKey     String          @map("storage_key")
+  status         DocumentStatus     @default(processing)
+  visibility     DocumentVisibility @default(public) @map("visibility")
+  storageKey     String             @map("storage_key")
   ownerId        String          @map("owner_id") @db.Uuid
   chunks         DocumentChunk[]
   organizationId String?         @map("organization_id") @db.Uuid
@@ -150,6 +177,8 @@ model Document {
   @@index([title])
   @@index([category])
   @@index([status])
+  @@index([visibility])
+  @@index([organizationId])
   @@index([createdAt])
   @@map("documents")
 }
