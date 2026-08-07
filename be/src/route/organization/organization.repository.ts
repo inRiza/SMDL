@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prismaClient } from "@/lib/db/prisma";
+import { recordDocumentActivity } from "@/lib/document/document-activity-log";
 import { getMemberDisplayName } from "@/lib/organization/member-display";
 import type {
   CreateOrganizationDocumentInput,
@@ -439,6 +440,15 @@ export class OrganizationRepository {
       metadata: { documentId: document.id, title: document.title, visibility: input.visibility },
     });
 
+    await recordDocumentActivity({
+      documentId: document.id,
+      actorId: ownerId,
+      actorName,
+      action: "document.uploaded",
+      summary: `mengunggah dokumen “${document.title}” (${document.fileFormat.toUpperCase()}, ${input.visibility === "public" ? "publik" : "khusus organisasi"})`,
+      metadata: { documentId: document.id, title: document.title, visibility: input.visibility },
+    });
+
     // simulate async LER kickoff — status stays processing
     return document;
   }
@@ -493,6 +503,15 @@ export class OrganizationRepository {
       metadata: { documentId, ...input },
     });
 
+    await recordDocumentActivity({
+      documentId,
+      actorId: ownerId,
+      actorName,
+      action: "document.updated",
+      summary,
+      metadata: { documentId, ...input },
+    });
+
     return updated;
   }
 
@@ -511,8 +530,6 @@ export class OrganizationRepository {
     });
     if (!existing) return "not_found" as const;
 
-    await prismaClient.document.delete({ where: { id: documentId } });
-
     await this.createActivity({
       organizationId,
       actorId: ownerId,
@@ -521,6 +538,17 @@ export class OrganizationRepository {
       summary: `mencabut/menghapus dokumen “${existing.title}”`,
       metadata: { documentId, title: existing.title },
     });
+
+    await recordDocumentActivity({
+      documentId,
+      actorId: ownerId,
+      actorName,
+      action: "document.revoked",
+      summary: `mencabut/menghapus dokumen “${existing.title}”`,
+      metadata: { documentId, title: existing.title },
+    });
+
+    await prismaClient.document.delete({ where: { id: documentId } });
 
     return "ok" as const;
   }
