@@ -12,6 +12,7 @@ export class AuthService {
       where: { email: input.email.toLowerCase() },
       select: {
         id: true,
+        name: true,
         email: true,
         role: true,
         passwordHash: true,
@@ -43,6 +44,7 @@ export class AuthService {
       token: rawToken,
       user: {
         id: user.id,
+        name: user.name,
         email: user.email,
         role: user.role,
       },
@@ -56,22 +58,26 @@ export class AuthService {
   }
 
   async getSessionUser(rawToken: string) {
-    const session = await prismaClient.session.findUnique({
-      where: { tokenHash: hashSessionToken(rawToken) },
-      include: {
-        user: {
-          select: { id: true, email: true, role: true },
+    try {
+      const session = await prismaClient.session.findUnique({
+        where: { tokenHash: hashSessionToken(rawToken) },
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, role: true },
+          },
         },
-      },
-    });
+      });
 
-    if (!session) return null;
+      if (!session) return null;
 
-    if (session.expiresAt <= new Date()) {
-      await prismaClient.session.delete({ where: { id: session.id } });
+      if (session.expiresAt <= new Date()) {
+        await prismaClient.session.delete({ where: { id: session.id } });
+        return null;
+      }
+
+      return session.user;
+    } catch {
       return null;
     }
-
-    return session.user;
   }
 }
