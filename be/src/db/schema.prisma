@@ -170,17 +170,35 @@ model Document {
   storageKey     String             @map("storage_key")
   ownerId        String          @map("owner_id") @db.Uuid
   chunks         DocumentChunk[]
+  activities     DocumentActivity[]
   organizationId String?         @map("organization_id") @db.Uuid
   organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   createdAt      DateTime        @default(now()) @map("created_at")
 
   @@index([title])
+  @@index([ownerId])
   @@index([category])
   @@index([status])
   @@index([visibility])
   @@index([organizationId])
   @@index([createdAt])
   @@map("documents")
+}
+
+model DocumentActivity {
+  id         String    @id @default(uuid()) @db.Uuid
+  documentId String?   @map("document_id") @db.Uuid
+  actorId    String?   @map("actor_id") @db.Uuid
+  actorName  String    @map("actor_name")
+  action     String
+  summary    String
+  metadata   Json?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([documentId, createdAt])
+  @@index([createdAt])
+  @@map("document_activities")
 }
 
 model DocumentChunk {

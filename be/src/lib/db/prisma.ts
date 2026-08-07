@@ -1,7 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { env } from "../config/env.config";
 
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -30,7 +30,8 @@ function resolvePrismaClient(): PrismaClient {
     "tellsChat" in cached &&
     "organization" in cached &&
     "organizationMember" in cached &&
-    "organizationActivity" in cached
+    "organizationActivity" in cached &&
+    "documentActivity" in cached
   ) {
     return cached;
   }
