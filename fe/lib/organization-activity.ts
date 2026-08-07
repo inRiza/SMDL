@@ -2,6 +2,11 @@ import type { OrganizationActivityItem } from "@/types/organization.types";
 
 export type ActivitySort = "newest" | "oldest";
 
+export type ActivityListItem = Pick<
+  OrganizationActivityItem,
+  "id" | "actorName" | "action" | "summary" | "createdAt"
+>;
+
 export const ACTIVITY_SORT_OPTIONS = [
   { value: "newest", label: "Terbaru" },
   { value: "oldest", label: "Terlama" },
@@ -30,14 +35,14 @@ export function formatRelativeTime(value: string) {
   return formatActivityDate(value);
 }
 
-export function getActivityActorName(activity: OrganizationActivityItem) {
+export function getActivityActorName(activity: ActivityListItem) {
   return activity.actorName.includes("@")
     ? activity.actorName.split("@")[0] ?? activity.actorName
     : activity.actorName;
 }
 
 export function searchAndSortActivities(
-  activities: OrganizationActivityItem[],
+  activities: ActivityListItem[],
   query: string,
   sort: ActivitySort
 ) {

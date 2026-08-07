@@ -2,6 +2,8 @@ import type {
   DocumentDetail,
   DocumentFilters,
   DocumentListResponse,
+  DocumentWorkspace,
+  WorkspaceDocumentItem,
 } from "@/types/document.types";
 import { toDocumentDetail } from "@/lib/mock/document-ler";
 import { getApiBeDocuments } from "../api.be";
@@ -56,4 +58,73 @@ export async function fetchDocumentById(id: string): Promise<DocumentDetail | nu
     ...document,
     updatedAt: document.updatedAt ?? document.createdAt,
   });
+}
+
+async function readError(res: Response, fallback: string) {
+  const data = (await res.json().catch(() => null)) as {
+    error?: string;
+    details?: Record<string, string[]>;
+  } | null;
+  return data?.details?.title?.[0] ?? data?.error ?? fallback;
+}
+
+export async function fetchDocumentWorkspace(): Promise<DocumentWorkspace> {
+  const res = await fetchApi(`${getApiBeDocuments()}/workspace`);
+
+  if (res.status === 401) {
+    throw new Error("Sesi berakhir. Silakan login ulang.");
+  }
+
+  if (!res.ok) {
+    throw new Error(await readError(res, "Gagal memuat workspace dokumen"));
+  }
+
+  return res.json();
+}
+
+export async function uploadPersonalDocument(input: {
+  title: string;
+  description?: string;
+  category?: string;
+  fileFormat: "pdf" | "docx";
+  fileSizeBytes?: number;
+}): Promise<WorkspaceDocumentItem> {
+  const res = await fetchApi(getApiBeDocuments(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!res.ok) {
+    throw new Error(await readError(res, "Gagal mengunggah dokumen"));
+  }
+
+  return res.json();
+}
+
+export async function updatePersonalDocument(
+  documentId: string,
+  input: { title?: string; category?: string | null }
+): Promise<WorkspaceDocumentItem> {
+  const res = await fetchApi(`${getApiBeDocuments()}/${documentId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!res.ok) {
+    throw new Error(await readError(res, "Gagal memperbarui dokumen"));
+  }
+
+  return res.json();
+}
+
+export async function revokePersonalDocument(documentId: string) {
+  const res = await fetchApi(`${getApiBeDocuments()}/${documentId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    throw new Error(await readError(res, "Gagal mencabut dokumen"));
+  }
 }

@@ -54,3 +54,32 @@ export type DocumentFilters = {
   page?: number;
   limit?: number;
 };
+
+export type DocumentActivityItem = {
+  id: string;
+  documentId: string | null;
+  actorId: string | null;
+  actorName: string;
+  action: string;
+  summary: string;
+  metadata: unknown;
+  createdAt: string;
+};
+
+export type WorkspaceDocumentItem = DocumentListItem & {
+  organizationName: string | null;
+  canManage: boolean;
+};
+
+export type DocumentWorkspace = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: "admin" | "owner" | "viewer" | "auditor";
+  };
+  canUpload: boolean;
+  documentCount: number;
+  documents: WorkspaceDocumentItem[];
+  activities: DocumentActivityItem[];
+};
