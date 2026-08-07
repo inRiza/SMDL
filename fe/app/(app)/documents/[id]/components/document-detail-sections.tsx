@@ -1,4 +1,5 @@
 import type { DocumentDetail, LerEntityType } from "@/types/document.types";
+import { cn } from "@/lib/utils";
 
 const entityTypeLabel: Record<LerEntityType, string> = {
   PARTY: "Pihak",
@@ -34,54 +35,54 @@ type DocumentMetadataProps = {
 };
 
 export function DocumentMetadata({ document }: DocumentMetadataProps) {
-  const rows = [
-    { label: "ID Dokumen", value: document.id },
-    { label: "Kategori", value: document.category ?? "—" },
-    { label: "Format", value: document.fileFormat.toUpperCase() },
-    { label: "Ukuran", value: formatFileSize(document.fileSizeBytes) },
-    { label: "Pemilik", value: document.ownerId },
-    { label: "Organisasi", value: document.organizationId ?? "—" },
-    { label: "Storage Key", value: document.storageKey },
-    { label: "Diunggah", value: formatDate(document.createdAt) },
-    { label: "Diperbarui", value: formatDate(document.updatedAt) },
-  ];
-
   return (
-    <section className="border-b border-telkom-grey-200 lg:border-b-0 lg:border-r">
-      <div className="border-b border-telkom-grey-200 px-4 py-3 md:px-6">
-        <h2 className="text-sm font-semibold text-telkom-black">Metadata</h2>
-      </div>
+    <section className="rounded-md bg-white p-5 md:p-6">
+      <h2 className="text-base font-semibold text-telkom-grey-900">Tentang</h2>
+      <p className="mt-0.5 text-sm text-telkom-grey-500">Informasi dokumen</p>
 
-      <dl className="divide-y divide-telkom-grey-200">
-        {rows.map((row) => (
-          <div
-            key={row.label}
-            className="grid gap-1 px-4 py-3 md:grid-cols-[140px_1fr] md:px-6"
-          >
-            <dt className="text-xs font-medium text-telkom-grey-500">
-              {row.label}
-            </dt>
-            <dd className="break-all text-sm text-telkom-black">{row.value}</dd>
-          </div>
-        ))}
+      <dl className="mt-5 space-y-5">
+        <MetadataItem label="Format" value={document.fileFormat.toUpperCase()} />
+        <MetadataItem label="Ukuran" value={formatFileSize(document.fileSizeBytes)} />
+        <MetadataItem label="Kategori" value={document.category ?? "—"} />
+        <MetadataItem label="Pemilik" value={document.ownerId} />
+        <MetadataItem
+          label="Organisasi"
+          value={document.organizationId ?? "—"}
+        />
+        <MetadataItem label="Diunggah" value={formatDate(document.createdAt)} />
+        <MetadataItem label="Diperbarui" value={formatDate(document.updatedAt)} />
       </dl>
+    </section>
+  );
+}
 
-      {document.description && (
-        <div className="border-t border-telkom-grey-200 px-4 py-4 md:px-6">
-          <p className="text-xs font-medium text-telkom-grey-500">Deskripsi</p>
-          <p className="mt-2 text-sm leading-relaxed text-telkom-grey-700">
-            {document.description}
-          </p>
-        </div>
-      )}
+function MetadataItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium uppercase tracking-wide text-telkom-grey-500">
+        {label}
+      </dt>
+      <dd className="mt-1.5 break-all text-sm text-telkom-grey-900">{value}</dd>
+    </div>
+  );
+}
 
-      <div className="border-t border-telkom-grey-200 px-4 py-4 md:px-6">
-        <p className="text-xs font-medium text-telkom-grey-500">Preview</p>
-        <div className="mt-3 flex h-48 items-center justify-center border border-dashed border-telkom-grey-200 bg-telkom-grey-50">
-          <p className="text-sm text-telkom-grey-500">
-            Preview {document.fileFormat.toUpperCase()}
-          </p>
-        </div>
+type DocumentPreviewProps = {
+  document: DocumentDetail;
+};
+
+export function DocumentPreview({ document }: DocumentPreviewProps) {
+  return (
+    <section className="rounded-md bg-white p-5 md:p-6">
+      <h2 className="text-base font-semibold text-telkom-grey-900">Preview</h2>
+      <p className="mt-0.5 text-sm text-telkom-grey-500">
+        Pratinjau dokumen {document.fileFormat.toUpperCase()}
+      </p>
+
+      <div className="mt-4 flex h-52 items-center justify-center rounded-md bg-telkom-grey-50">
+        <p className="text-sm text-telkom-grey-500">
+          Preview {document.fileFormat.toUpperCase()}
+        </p>
       </div>
     </section>
   );
@@ -93,21 +94,21 @@ type LerResultsPanelProps = {
 
 export function LerResultsPanel({ document }: LerResultsPanelProps) {
   return (
-    <section>
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
+    <section className="rounded-md bg-white p-5 md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-telkom-black">
-            Hasil LER
-          </h2>
+          <h2 className="text-base font-semibold text-telkom-grey-900">Hasil LER</h2>
+          <p className="mt-0.5 text-sm text-telkom-grey-500">
+            Entitas legal yang diekstraksi dari dokumen
+          </p>
         </div>
-
         <LerStatusBadge status={document.lerStatus} />
       </div>
 
       {document.lerStatus === "pending" && <LerPendingState />}
       {document.lerStatus === "failed" && <LerFailedState />}
       {document.lerStatus === "completed" && (
-        <LerEntityTable
+        <LerEntityList
           entities={document.lerEntities}
           extractedAt={document.lerExtractedAt}
         />
@@ -121,6 +122,12 @@ function LerStatusBadge({
 }: {
   status: DocumentDetail["lerStatus"];
 }) {
+  const styles = {
+    pending: "bg-amber-50 text-amber-700",
+    completed: "bg-emerald-50 text-emerald-700",
+    failed: "bg-red-50 text-telkom-red",
+  };
+
   const label = {
     pending: "Sedang diproses",
     completed: "Selesai",
@@ -128,7 +135,12 @@ function LerStatusBadge({
   }[status];
 
   return (
-    <span className="rounded-sm bg-telkom-grey-100 px-2 py-1 text-xs font-bold text-telkom-grey-700">
+    <span
+      className={cn(
+        "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        styles[status]
+      )}
+    >
       {label}
     </span>
   );
@@ -136,11 +148,11 @@ function LerStatusBadge({
 
 function LerPendingState() {
   return (
-    <div className="px-4 py-12 text-center md:px-6">
-      <p className="text-sm font-medium text-telkom-black">
+    <div className="mt-6 rounded-md bg-telkom-grey-50 px-4 py-10 text-center">
+      <p className="text-sm font-medium text-telkom-grey-900">
         Ekstraksi LER sedang berjalan
       </p>
-      <p className="mt-2 text-sm text-telkom-grey-600">
+      <p className="mt-2 text-sm text-telkom-grey-500">
         Hasil entitas legal akan muncul otomatis setelah proses selesai.
       </p>
     </div>
@@ -149,18 +161,18 @@ function LerPendingState() {
 
 function LerFailedState() {
   return (
-    <div className="px-4 py-12 text-center md:px-6">
-      <p className="text-sm font-medium text-telkom-black">
+    <div className="mt-6 rounded-md bg-telkom-grey-50 px-4 py-10 text-center">
+      <p className="text-sm font-medium text-telkom-grey-900">
         Ekstraksi LER gagal
       </p>
-      <p className="mt-2 text-sm text-telkom-grey-600">
+      <p className="mt-2 text-sm text-telkom-grey-500">
         Dokumen tetap tersimpan. Silakan coba jalankan ulang ekstraksi nanti.
       </p>
     </div>
   );
 }
 
-function LerEntityTable({
+function LerEntityList({
   entities,
   extractedAt,
 }: {
@@ -169,8 +181,8 @@ function LerEntityTable({
 }) {
   if (entities.length === 0) {
     return (
-      <div className="px-4 py-12 text-center md:px-6">
-        <p className="text-sm text-telkom-grey-600">
+      <div className="mt-6 rounded-md bg-telkom-grey-50 px-4 py-10 text-center">
+        <p className="text-sm text-telkom-grey-500">
           Tidak ada entitas legal yang terdeteksi.
         </p>
       </div>
@@ -178,50 +190,33 @@ function LerEntityTable({
   }
 
   return (
-    <div>
+    <div className="mt-5">
       {extractedAt && (
-        <p className="border-b border-telkom-grey-200 px-4 py-2 text-xs text-telkom-grey-500 md:px-6">
+        <p className="mb-3 text-xs text-telkom-grey-500">
           Diekstraksi pada {formatDate(extractedAt)}
         </p>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[480px] text-left text-sm">
-          <thead>
-            <tr className="border-b border-telkom-grey-200 bg-telkom-grey-50">
-              <th className="px-4 py-2.5 text-xs font-semibold text-telkom-grey-600 md:px-6">
-                Tipe Entitas
-              </th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-telkom-grey-600 md:px-6">
-                Nilai
-              </th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-telkom-grey-600 md:px-6">
-                Confidence
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {entities.map((entity) => (
-              <tr
-                key={entity.id}
-                className="border-b border-telkom-grey-200 last:border-b-0"
-              >
-                <td className="px-4 py-3 md:px-6">
-                  <span className="rounded-sm bg-telkom-grey-100 px-1.5 py-0.5 text-xs font-bold text-telkom-grey-700">
-                    {entityTypeLabel[entity.entityType]}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-telkom-black md:px-6">
-                  {entity.entityValue}
-                </td>
-                <td className="px-4 py-3 text-telkom-grey-600 md:px-6">
-                  {formatConfidence(entity.confidence)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ul className="space-y-1">
+        {entities.map((entity) => (
+          <li
+            key={entity.id}
+            className="flex flex-col gap-2 rounded-md px-3 py-3 transition-colors hover:bg-telkom-grey-50 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="min-w-0 flex-1">
+              <span className="inline-flex rounded-full bg-telkom-grey-100 px-2.5 py-0.5 text-xs font-medium text-telkom-grey-700">
+                {entityTypeLabel[entity.entityType]}
+              </span>
+              <p className="mt-2 text-sm font-medium text-telkom-grey-900">
+                {entity.entityValue}
+              </p>
+            </div>
+            <span className="shrink-0 text-sm text-telkom-grey-500">
+              {formatConfidence(entity.confidence)} confidence
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
