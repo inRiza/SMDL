@@ -32,7 +32,7 @@ export function SearchLoadingIndicator({
   const items = isCompact ? compactSquares : squares;
 
   return (
-    <div className={cn("flex flex-col items-center", className)}>
+    <div className={cn("flex flex-col items-center bg-transparent border-none", className)}>
       <div className={cn("relative", isCompact ? "h-16 w-16" : "h-28 w-28")}>
         {items.map((square, index) => (
           <span
