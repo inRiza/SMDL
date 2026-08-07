@@ -37,16 +37,16 @@ export class TellsService {
         result = this.replyWithCapability(input);
         break;
       case "document_latest":
-        result = await this.replyWithLatestDocuments(input);
+        result = await this.replyWithLatestDocuments(input, userId);
         break;
       case "document_list":
-        result = await this.replyWithDocumentList(input);
+        result = await this.replyWithDocumentList(input, userId);
         break;
       case "document_search":
-        result = await this.replyWithMetadataSearch(input);
+        result = await this.replyWithMetadataSearch(input, userId);
         break;
       default:
-        result = await this.replyWithContentRag(input);
+        result = await this.replyWithContentRag(input, userId);
     }
 
     const conversationId = await this.conversations.appendExchange({
@@ -61,9 +61,10 @@ export class TellsService {
   }
 
   private async replyWithLatestDocuments(
-    input: TellsChatInput
+    input: TellsChatInput,
+    userId: string
   ): Promise<TellsChatResult> {
-    const docs = await this.catalog.getLatest(3);
+    const docs = await this.catalog.getLatest(userId, 3);
     const citations = this.catalog.docsToCitations(docs);
     const reply = this.catalog.buildLatestReply(
       docs,
@@ -79,11 +80,12 @@ export class TellsService {
   }
 
   private async replyWithDocumentList(
-    input: TellsChatInput
+    input: TellsChatInput,
+    userId: string
   ): Promise<TellsChatResult> {
     const [docs, total] = await Promise.all([
-      this.catalog.getLatest(5),
-      this.catalog.countDocuments(),
+      this.catalog.getLatest(userId, 5),
+      this.catalog.countDocuments(userId),
     ]);
 
     return {
@@ -99,12 +101,13 @@ export class TellsService {
   }
 
   private async replyWithMetadataSearch(
-    input: TellsChatInput
+    input: TellsChatInput,
+    userId: string
   ): Promise<TellsChatResult> {
-    const docs = await this.catalog.searchMetadata(input.message, 5);
+    const docs = await this.catalog.searchMetadata(userId, input.message, 5);
 
     if (docs.length === 0) {
-      return this.replyWithContentRag(input, { allowMetadataFallback: false });
+      return this.replyWithContentRag(input, userId, { allowMetadataFallback: false });
     }
 
     const citations = this.catalog.docsToCitations(docs.slice(0, 3));
@@ -156,16 +159,17 @@ ${context}`,
 
   private async replyWithContentRag(
     input: TellsChatInput,
+    userId: string,
     options?: { allowMetadataFallback?: boolean }
   ): Promise<TellsChatResult> {
     const allowMetadataFallback = options?.allowMetadataFallback ?? true;
 
-    let hits = await this.retrieval.search(input.message);
+    let hits = await this.retrieval.search(input.message, userId);
 
     if (hits.length === 0 && allowMetadataFallback) {
-      const docs = await this.catalog.searchMetadata(input.message, 3);
+      const docs = await this.catalog.searchMetadata(userId, input.message, 3);
       if (docs.length > 0) {
-        return this.replyWithMetadataSearch(input);
+        return this.replyWithMetadataSearch(input, userId);
       }
 
       if (isPureGreeting(input.message)) {
