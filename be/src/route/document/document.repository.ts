@@ -1,11 +1,16 @@
 import type { Prisma } from "@prisma/client";
 import { prismaClient } from "@/lib/db/prisma";
+import { recordDocumentActivity } from "@/lib/document/document-activity-log";
 import {
   buildDocumentAccessWhere,
   canAccessDocument,
   getAccessibleOrganizationIds,
 } from "@/lib/document/document-access";
-import type { DocumentListQueryInput } from "@/validators/document.validator";
+import type {
+  CreatePersonalDocumentInput,
+  DocumentListQueryInput,
+  UpdatePersonalDocumentInput,
+} from "@/validators/document.validator";
 
 function buildWhere(
   query: DocumentListQueryInput,
@@ -85,6 +90,36 @@ const detailSelect = {
   ownerId: true,
 } as const;
 
+const workspaceDocumentSelect = {
+  id: true,
+  title: true,
+  description: true,
+  category: true,
+  fileFormat: true,
+  fileSizeBytes: true,
+  status: true,
+  visibility: true,
+  organizationId: true,
+  createdAt: true,
+  organization: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+} as const;
+
+const activitySelect = {
+  id: true,
+  documentId: true,
+  actorId: true,
+  actorName: true,
+  action: true,
+  summary: true,
+  metadata: true,
+  createdAt: true,
+} as const;
+
 export class DocumentRepository {
   async findMany(query: DocumentListQueryInput, userId?: string) {
     const orgIds = userId ? await getAccessibleOrganizationIds(userId) : new Set<string>();
@@ -135,5 +170,124 @@ export class DocumentRepository {
     if (!allowed) return "forbidden" as const;
 
     return document;
+  }
+
+  async getWorkspace(userId: string) {
+    const [user, documents, activities] = await Promise.all([
+      prismaClient.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, email: true, role: true },
+      }),
+      prismaClient.document.findMany({
+        where: { ownerId: userId },
+        orderBy: { createdAt: "desc" },
+        select: workspaceDocumentSelect,
+      }),
+      prismaClient.documentActivity.findMany({
+        where: {
+          OR: [
+            { document: { ownerId: userId } },
+            { actorId: userId },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        select: activitySelect,
+      }),
+    ]);
+
+    return { user, documents, activities };
+  }
+
+  async createPersonalDocument(
+    ownerId: string,
+    actorName: string,
+    input: CreatePersonalDocumentInput
+  ) {
+    const document = await prismaClient.document.create({
+      data: {
+        title: input.title,
+        description: input.description,
+        category: input.category,
+        fileFormat: input.fileFormat,
+        fileSizeBytes: BigInt(input.fileSizeBytes ?? 1024),
+        status: "processing",
+        visibility: "public",
+        storageKey: `personal/${ownerId}/${crypto.randomUUID()}`,
+        ownerId,
+        organizationId: null,
+      },
+      select: workspaceDocumentSelect,
+    });
+
+    await recordDocumentActivity({
+      documentId: document.id,
+      actorId: ownerId,
+      actorName,
+      action: "document.uploaded",
+      summary: `mengunggah dokumen “${document.title}” (${document.fileFormat.toUpperCase()}, publik)`,
+      metadata: { documentId: document.id, title: document.title, visibility: "public" },
+    });
+
+    return document;
+  }
+
+  async updatePersonalDocument(
+    documentId: string,
+    ownerId: string,
+    actorName: string,
+    input: UpdatePersonalDocumentInput
+  ) {
+    const existing = await prismaClient.document.findFirst({
+      where: { id: documentId, ownerId, organizationId: null },
+      select: { id: true, title: true },
+    });
+    if (!existing) return "not_found" as const;
+
+    const updated = await prismaClient.document.update({
+      where: { id: documentId },
+      data: {
+        ...(input.title !== undefined ? { title: input.title } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.category !== undefined ? { category: input.category } : {}),
+      },
+      select: workspaceDocumentSelect,
+    });
+
+    const summary =
+      input.title && input.title !== existing.title
+        ? `mengganti nama dokumen “${existing.title}” → “${input.title}”`
+        : `memperbarui dokumen “${existing.title}”`;
+
+    await recordDocumentActivity({
+      documentId,
+      actorId: ownerId,
+      actorName,
+      action: "document.updated",
+      summary,
+      metadata: { documentId, ...input },
+    });
+
+    return updated;
+  }
+
+  async revokePersonalDocument(documentId: string, ownerId: string, actorName: string) {
+    const existing = await prismaClient.document.findFirst({
+      where: { id: documentId, ownerId, organizationId: null },
+      select: { id: true, title: true },
+    });
+    if (!existing) return "not_found" as const;
+
+    await recordDocumentActivity({
+      documentId,
+      actorId: ownerId,
+      actorName,
+      action: "document.revoked",
+      summary: `mencabut/menghapus dokumen “${existing.title}”`,
+      metadata: { documentId, title: existing.title },
+    });
+
+    await prismaClient.document.delete({ where: { id: documentId } });
+    return "ok" as const;
   }
 }
