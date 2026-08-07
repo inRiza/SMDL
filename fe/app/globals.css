@@ -105,18 +105,24 @@
 }
 
 :root {
-  --telkom-red: #e42313;
-  --telkom-red-dark: #c41e10;
-  --telkom-grey-50: #f8f9fa;
-  --telkom-grey-100: #f1f3f5;
-  --telkom-grey-200: #e9ecef;
-  --telkom-grey-400: #adb5bd;
-  --telkom-grey-500: #868e96;
-  --telkom-grey-600: #495057;
-  --telkom-grey-800: #343a40;
-  --telkom-black: #111111;
-  --font-so: -apple-system, BlinkMacSystemFont, "Segoe UI Adjusted", "Segoe UI",
-    "Liberation Sans", sans-serif;
+  --telkom-red: #dc2626;
+  --telkom-red-dark: #b91c1c;
+  --telkom-grey-50: #f9fafb;
+  --telkom-grey-100: #f3f4f6;
+  --telkom-grey-200: #e5e7eb;
+  --telkom-grey-300: #d1d5db;
+  --telkom-grey-400: #9ca3af;
+  --telkom-grey-500: #6b7280;
+  --telkom-grey-600: #4b5563;
+  --telkom-grey-700: #374151;
+  --telkom-grey-800: #1f2937;
+  --telkom-grey-900: #111827;
+  --telkom-black: #020817;
+  --font-so: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --shadow-sm: 0 1px 2px rgba(2, 8, 23, 0.05);
+  --shadow-md: 0 2px 8px rgba(2, 8, 23, 0.08);
+  --shadow-lg: 0 8px 24px rgba(2, 8, 23, 0.12);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -140,8 +146,8 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: #ffffff;
+  --radius: 0.5rem;
+  --sidebar: var(--telkom-grey-100);
   --sidebar-foreground: var(--telkom-black);
   --sidebar-primary: var(--telkom-red);
   --sidebar-primary-foreground: #ffffff;
@@ -159,10 +165,13 @@
   --color-telkom-grey-50: var(--telkom-grey-50);
   --color-telkom-grey-100: var(--telkom-grey-100);
   --color-telkom-grey-200: var(--telkom-grey-200);
+  --color-telkom-grey-300: var(--telkom-grey-300);
   --color-telkom-grey-400: var(--telkom-grey-400);
   --color-telkom-grey-500: var(--telkom-grey-500);
   --color-telkom-grey-600: var(--telkom-grey-600);
+  --color-telkom-grey-700: var(--telkom-grey-700);
   --color-telkom-grey-800: var(--telkom-grey-800);
+  --color-telkom-grey-900: var(--telkom-grey-900);
   --color-telkom-black: var(--telkom-black);
   --font-sans: var(--font-so);
   --font-heading: var(--font-so);
