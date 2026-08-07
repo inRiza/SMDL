@@ -40,8 +40,11 @@ export function AppSidebar() {
     if (isOrgSection) setOrgOpen(true);
   }, [isOrgSection]);
 
-  const isWikiActive =
-    pathname === "/wiki" || pathname.startsWith("/documents/");
+  const isDocumentDetail =
+    /^\/documents\/[^/]+$/.test(pathname) && pathname !== "/documents/activity";
+  const isDocumentsActive =
+    pathname === "/documents" || pathname === "/documents/activity";
+  const isWikiActive = pathname === "/wiki" || isDocumentDetail;
   const isTellsActive = pathname === "/tells" || pathname.startsWith("/tells/");
 
   return (
@@ -70,7 +73,7 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   render={<Link href="/documents" />}
-                  isActive={pathname === "/documents"}
+                  isActive={isDocumentsActive}
                   tooltip="Dokumen"
                   size="lg"
                   className={navItemClass}
