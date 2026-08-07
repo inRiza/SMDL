@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
-import { OrganizationDetailView } from "../components/organization-detail-view";
+import { OrganizationActivityView } from "../../components/organization-activity-view";
 import { fetchOrganizationById } from "@/lib/api/organization/route";
 
-type OrganizationDetailPageProps = {
+type OrganizationActivityPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function OrganizationDetailPage({
+export default async function OrganizationActivityPage({
   params,
-}: OrganizationDetailPageProps) {
+}: OrganizationActivityPageProps) {
   const { id } = await params;
   const organization = await fetchOrganizationById(id);
 
@@ -18,7 +18,7 @@ export default async function OrganizationDetailPage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <OrganizationDetailView organization={organization} />
+      <OrganizationActivityView organization={organization} />
     </div>
   );
 }

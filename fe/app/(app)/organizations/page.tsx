@@ -1,4 +1,3 @@
-import { AppHeader } from "@/components/app/app-header";
 import { OrganizationList } from "./components/organization-list";
 import { OrganizationResults } from "./components/organization-results";
 import { OrganizationSearchFilter } from "./components/organization-search-filter";
@@ -23,6 +22,7 @@ function getFilter(
     sort: (get("sort") as OrganizationFilters["sort"]) ?? "newest",
     page: Number(get("page") ?? "1"),
     limit: 12,
+    mine: get("mine") === "1" || get("mine") === "true",
   };
 }
 
@@ -36,16 +36,16 @@ export default async function OrganizationsPage({
   const organizationsResult = await fetchOrganizations(filters);
 
   return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-telkom-grey-50">
         <OrganizationSearchFilter />
 
         <OrganizationResults filtersKey={filtersKey}>
-          <div className="flex items-center justify-between border-b border-telkom-grey-200 px-4 py-3 md:px-6">
+          <div className="flex items-center justify-between px-4 py-3 md:px-6">
             <p className="text-sm text-telkom-grey-600">
               <span className="font-medium text-telkom-black">
                 {organizationsResult.meta.total}
               </span>{" "}
-              organisasi
+              {filters.mine ? "organisasi saya" : "organisasi"}
               {filters.q && (
                 <>
                   {" "}

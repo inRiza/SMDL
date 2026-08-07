@@ -3,8 +3,9 @@
 import Link from "next/link";
 import type { OrganizationListItem } from "@/types/organization.types";
 import { ORGANIZATION_TYPE_LABELS } from "@/types/organization.types";
-import { useOrganizationSearch } from "./organization-search-provider";
 import { cn } from "@/lib/utils";
+import { useOrganizationSearch } from "./organization-search-provider";
+import { StackedMemberAvatars } from "./member-avatars";
 
 type OrganizationCardProps = {
   organization: OrganizationListItem;
@@ -23,47 +24,63 @@ export function OrganizationCard({
   organization,
   onTypeClick,
 }: OrganizationCardProps) {
+  const hasMembers = organization.memberCount > 0;
+
   return (
     <Link
       href={`/organizations/${organization.id}`}
-      className="group flex h-full flex-col rounded-sm border border-telkom-grey-200 bg-white p-4 transition-all hover:shadow-xl"
+      className="group flex h-full flex-col rounded-md bg-white p-4 transition-colors hover:bg-telkom-grey-50"
     >
       <div className="min-w-0 flex-1">
-        <span
-          className="line-clamp-2 text-base font-medium leading-snug text-telkom-black transition-colors group-hover:text-telkom-red"
-        >
+        <span className="line-clamp-2 text-base font-medium leading-snug text-telkom-grey-900 transition-colors group-hover:text-telkom-red">
           {organization.name}
         </span>
 
         {organization.description && (
-          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-telkom-grey-600">
+          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-telkom-grey-500">
             {organization.description}
           </p>
         )}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-telkom-grey-100 pt-3 text-xs text-telkom-grey-500">
-        {onTypeClick ? (
-          <button
-            type="button"
-            onClick={() => onTypeClick(organization.type)}
-            className="cursor-pointer rounded-sm bg-telkom-grey-100 px-1.5 py-0.5 font-medium text-telkom-grey-700 transition-colors hover:bg-telkom-grey-200"
-          >
-            {ORGANIZATION_TYPE_LABELS[organization.type]}
-          </button>
-        ) : (
-          <span className="rounded-sm bg-telkom-grey-100 px-1.5 py-0.5 font-medium text-telkom-grey-700">
-            {ORGANIZATION_TYPE_LABELS[organization.type]}
-          </span>
+      <div
+        className={cn(
+          "mt-4 flex flex-wrap items-center gap-2 text-xs text-telkom-grey-500",
+          hasMembers && "justify-between gap-3"
+        )}
+      >
+        {hasMembers && (
+          <StackedMemberAvatars
+            members={organization.membersPreview}
+            total={organization.memberCount}
+          />
         )}
 
-        <span className="rounded-sm bg-telkom-grey-100 px-1.5 py-0.5 font-medium text-telkom-grey-700">
-          {organization.documentCount} dokumen
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {onTypeClick ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onTypeClick(organization.type);
+              }}
+              className="cursor-pointer rounded-full bg-telkom-grey-100 px-2 py-0.5 font-medium text-telkom-grey-700 transition-colors hover:bg-telkom-grey-200"
+            >
+              {ORGANIZATION_TYPE_LABELS[organization.type]}
+            </button>
+          ) : (
+            <span className="rounded-full bg-telkom-grey-100 px-2 py-0.5 font-medium text-telkom-grey-700">
+              {ORGANIZATION_TYPE_LABELS[organization.type]}
+            </span>
+          )}
 
-        <span className="ml-auto text-telkom-grey-400">
-          {formatDate(organization.createdAt)}
-        </span>
+          <span className="rounded-full bg-telkom-grey-100 px-2 py-0.5 font-medium text-telkom-grey-700">
+            {organization.documentCount} dokumen
+          </span>
+
+          <span className="text-telkom-grey-400">{formatDate(organization.createdAt)}</span>
+        </div>
       </div>
     </Link>
   );
@@ -78,11 +95,11 @@ export function OrganizationList({ organizations }: OrganizationListProps) {
 
   if (organizations.length === 0) {
     return (
-      <div className="border-y border-telkom-grey-200 py-16 text-center">
-        <p className="text-base font-medium text-telkom-black">
+      <div className="py-16 text-center">
+        <p className="text-base font-medium text-telkom-grey-900">
           Organisasi tidak ditemukan
         </p>
-        <p className="mt-2 text-sm text-telkom-grey-600">
+        <p className="mt-2 text-sm text-telkom-grey-500">
           Coba ubah kata kunci pencarian atau filter yang digunakan.
         </p>
       </div>
@@ -90,7 +107,7 @@ export function OrganizationList({ organizations }: OrganizationListProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2 xl:grid-cols-3">
       {organizations.map((organization) => (
         <OrganizationCard
           key={organization.id}
@@ -114,7 +131,7 @@ export function OrganizationTypeBadge({
   return (
     <span
       className={cn(
-        "rounded-sm bg-telkom-grey-100 px-1.5 py-0.5 text-xs font-medium text-telkom-grey-700",
+        "rounded-full bg-telkom-grey-100 px-2 py-0.5 text-xs font-medium text-telkom-grey-700",
         className
       )}
     >
