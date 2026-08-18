@@ -1,1 +1,0 @@
-{"nodes": [{"id": "be_readme", "label": "SMDL Backend README", "file_type": "document", "source_file": "be/README.md"}], "edges": [{"source": "be_readme", "target": "be_docker_compose", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "be/README.md"}], "hyperedges": []}

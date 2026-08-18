@@ -1,1 +1,0 @@
-{"nodes": [{"id": "doc_ui_skills", "label": "UI Design System", "file_type": "document", "source_file": "doc/Ui_SKILLS.md"}], "edges": [{"source": "doc_ui_skills", "target": "tech_nextjs", "relation": "conceptually_related_to", "confidence": "INFERRED", "confidence_score": 0.8, "source_file": "doc/Ui_SKILLS.md"}], "hyperedges": []}
