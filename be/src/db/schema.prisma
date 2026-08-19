@@ -14,6 +14,12 @@ enum UserRole {
   auditor
 }
 
+enum UserAccountStatus {
+  active
+  deactivated
+  deleted
+}
+
 enum DocumentVisibility {
   public
   organization
@@ -75,20 +81,36 @@ enum TellsMessageRole {
   assistant
 }
 
+enum AuditEventStatus {
+  success
+  failure
+}
+
+enum OutboxStatus {
+  pending
+  published
+  failed
+}
+
 model User {
   id           String    @id @default(uuid()) @db.Uuid
   name         String    @default("") @map("name")
   email        String    @unique @map("email")
   passwordHash String    @map("password_hash")
-  role         UserRole  @default(viewer)
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  role          UserRole           @default(viewer)
+  accountStatus UserAccountStatus  @default(active) @map("account_status")
+  deactivatedAt DateTime?          @map("deactivated_at")
+  deletedAt     DateTime?          @map("deleted_at")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
   sessions      Session[]
   organizations Organization[]
   organizationMemberships OrganizationMember[]
+  documents     Document[]
 
   @@index([email])
   @@index([name])
+  @@index([accountStatus])
   @@map("users")
 }
 
@@ -159,30 +181,56 @@ model Session {
 }
 
 model Document {
-  id             String          @id @default(uuid()) @db.Uuid
+  id             String             @id @default(uuid()) @db.Uuid
   title          String
   description    String?
   category       String?
-  fileFormat     FileFormat      @map("file_format")
-  fileSizeBytes  BigInt          @map("file_size_bytes")
+  documentType   String?            @map("document_type")
+  contentArea    String?            @map("content_area")
+  classification String?
+  publishedAt    DateTime?          @map("published_at") @db.Date
+  revision       String?
+  legalStatus    String?            @map("legal_status")
+  source         String?
+  fileFormat     FileFormat         @map("file_format")
+  fileSizeBytes  BigInt             @map("file_size_bytes")
   status         DocumentStatus     @default(processing)
   visibility     DocumentVisibility @default(public) @map("visibility")
   storageKey     String             @map("storage_key")
-  ownerId        String          @map("owner_id") @db.Uuid
+  ownerId        String             @map("owner_id") @db.Uuid
+  owner          User               @relation(fields: [ownerId], references: [id])
   chunks         DocumentChunk[]
+  entities       DocumentEntity[]
   activities     DocumentActivity[]
-  organizationId String?         @map("organization_id") @db.Uuid
-  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  createdAt      DateTime        @default(now()) @map("created_at")
+  organizationId String?            @map("organization_id") @db.Uuid
+  organization   Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  lerExtractedAt DateTime?          @map("ler_extracted_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
 
   @@index([title])
   @@index([ownerId])
   @@index([category])
+  @@index([documentType])
+  @@index([contentArea])
   @@index([status])
   @@index([visibility])
   @@index([organizationId])
   @@index([createdAt])
   @@map("documents")
+}
+
+model DocumentEntity {
+  id          String   @id @default(uuid()) @db.Uuid
+  documentId  String   @map("document_id") @db.Uuid
+  entityType  String   @map("entity_type")
+  entityValue String   @map("entity_value")
+  confidence  Float?
+  sourceText  String?  @map("source_text")
+  createdAt   DateTime @default(now()) @map("created_at")
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@map("document_entities")
 }
 
 model DocumentActivity {
@@ -236,4 +284,53 @@ model TellsChatMessage {
 
   @@index([tellsChatId, createdAt])
   @@map("tells_chat_messages")
+}
+
+model AuditEvent {
+  id            String           @id @default(uuid()) @db.Uuid
+  eventId       String           @unique @map("event_id")
+  eventType     String           @map("event_type")
+  service       String           @default("smdl-api")
+  userId        String?          @map("user_id") @db.Uuid
+  userEmail     String?          @map("user_email")
+  userName      String?          @map("user_name")
+  aggregateId   String?          @map("aggregate_id")
+  aggregateType String?          @map("aggregate_type")
+  requestId     String?          @map("request_id")
+  ipAddress     String?          @map("ip_address")
+  status        AuditEventStatus @default(success)
+  summary       String
+  payload       Json?
+  metadata      Json?
+  occurredAt    DateTime         @default(now()) @map("occurred_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  @@index([occurredAt(sort: Desc), id(sort: Desc)])
+  @@index([eventType, occurredAt(sort: Desc)])
+  @@index([userId, occurredAt(sort: Desc)])
+  @@map("audit_events")
+}
+
+model OutboxEvent {
+  id           String       @id @default(uuid()) @db.Uuid
+  eventId      String       @unique @map("event_id")
+  topic        String       @default("app.events")
+  partitionKey String?      @map("partition_key")
+  payload      Json
+  status       OutboxStatus @default(pending)
+  attempts     Int          @default(0)
+  lastError    String?      @map("last_error")
+  publishedAt  DateTime?    @map("published_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  @@index([status, createdAt])
+  @@map("outbox_events")
+}
+
+model ProcessedEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  eventId     String   @unique @map("event_id")
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@map("processed_events")
 }
