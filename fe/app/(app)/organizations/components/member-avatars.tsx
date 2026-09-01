@@ -1,12 +1,7 @@
 import type { OrganizationMemberPreview } from "@/types/organization.types";
-import { getMemberAvatarUrl } from "@/lib/member-display";
 import { cn } from "@/lib/utils";
-import {
-  Avatar,
-  AvatarGroup,
-  AvatarGroupCount,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
+import { getMemberInitials } from "@/lib/member-display";
 
 type MemberAvatarProps = {
   name: string;
@@ -17,14 +12,16 @@ type MemberAvatarProps = {
 
 export function MemberAvatar({
   name,
-  imageUrl,
   size = "default",
   className,
 }: MemberAvatarProps) {
   return (
-    <Avatar size={size} className={className}>
-      <AvatarImage src={getMemberAvatarUrl(name, imageUrl)} alt={name} />
-    </Avatar>
+    <InitialsAvatar
+      name={name}
+      kind="user"
+      size={size}
+      className={className}
+    />
   );
 }
 
@@ -48,20 +45,33 @@ export function StackedMemberAvatars({
   const avatarSize = size === "sm" ? "sm" : "default";
 
   return (
-    <AvatarGroup className={cn(size === "md" && "*:data-[slot=avatar]:size-8")}>
+    <div
+      className={cn(
+        "flex -space-x-2",
+        size === "md" && "[&_[data-initials-avatar]]:size-8",
+      )}
+    >
       {visible.map((member) => (
-        <Avatar key={member.id} size={avatarSize}>
-          <AvatarImage
-            src={getMemberAvatarUrl(member.name, member.imageUrl)}
-            alt={member.name}
-          />
-        </Avatar>
+        <InitialsAvatar
+          key={member.id}
+          name={member.name}
+          kind="user"
+          size={avatarSize}
+          className="ring-2 ring-white"
+        />
       ))}
       {remaining > 0 && (
-        <AvatarGroupCount className="text-xs font-medium">
+        <div
+          className={cn(
+            "flex size-6 shrink-0 items-center justify-center rounded-full bg-telkom-grey-100 text-[10px] font-medium text-telkom-grey-600 ring-2 ring-white",
+            avatarSize === "default" && "size-8 text-xs",
+          )}
+        >
           +{remaining}
-        </AvatarGroupCount>
+        </div>
       )}
-    </AvatarGroup>
+    </div>
   );
 }
+
+export { getMemberInitials };

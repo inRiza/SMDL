@@ -6,13 +6,14 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { DocumentFilters } from "@/types/document.types";
+import {
+  CONTENT_AREAS,
+  DOCUMENT_CLASSIFICATIONS,
+  DOCUMENT_TYPES,
+} from "@/lib/document-metadata";
 import { cn } from "@/lib/utils";
 import { FilterDropdown } from "./filter-dropdown";
 import { useWikiSearch } from "./wiki-search-provider";
-
-type SearchFilterProps = {
-  categories: string[];
-};
 
 const statusOptions = [
   { value: "", label: "Semua status" },
@@ -34,13 +35,45 @@ const sortOptions = [
   { value: "title_desc", label: "Judul Z–A" },
 ];
 
-export function SearchFilter({ categories }: SearchFilterProps) {
+const classificationOptions = [
+  { value: "", label: "Semua klasifikasi" },
+  ...DOCUMENT_CLASSIFICATIONS.map((item) => ({
+    value: item.value,
+    label: item.label,
+  })),
+];
+
+const documentTypeOptions = [
+  { value: "", label: "Semua jenis" },
+  ...DOCUMENT_TYPES.map((item) => ({
+    value: item.value,
+    label: item.label,
+  })),
+];
+
+const contentAreaOptions = [
+  { value: "", label: "Semua materi muatan" },
+  ...CONTENT_AREAS.map((item) => ({
+    value: item.value,
+    label: item.label,
+  })),
+];
+
+export function SearchFilter() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { navigate } = useWikiSearch();
 
   const [q, setQ] = useState(searchParams.get("q") ?? "");
-  const [category, setCategory] = useState(searchParams.get("category") ?? "");
+  const [classification, setClassification] = useState(
+    searchParams.get("classification") ?? "",
+  );
+  const [documentType, setDocumentType] = useState(
+    searchParams.get("documentType") ?? "",
+  );
+  const [contentArea, setContentArea] = useState(
+    searchParams.get("contentArea") ?? "",
+  );
   const [status, setStatus] = useState(searchParams.get("status") ?? "");
   const [fileFormat, setFileFormat] = useState(searchParams.get("fileFormat") ?? "");
   const [sort, setSort] = useState(searchParams.get("sort") ?? "newest");
@@ -48,7 +81,9 @@ export function SearchFilter({ categories }: SearchFilterProps) {
 
   useEffect(() => {
     setQ(searchParams.get("q") ?? "");
-    setCategory(searchParams.get("category") ?? "");
+    setClassification(searchParams.get("classification") ?? "");
+    setDocumentType(searchParams.get("documentType") ?? "");
+    setContentArea(searchParams.get("contentArea") ?? "");
     setStatus(searchParams.get("status") ?? "");
     setFileFormat(searchParams.get("fileFormat") ?? "");
     setSort(searchParams.get("sort") ?? "newest");
@@ -56,10 +91,12 @@ export function SearchFilter({ categories }: SearchFilterProps) {
 
   const hasActiveFilters = Boolean(
     searchParams.get("q") ||
-      searchParams.get("category") ||
+      searchParams.get("classification") ||
+      searchParams.get("documentType") ||
+      searchParams.get("contentArea") ||
       searchParams.get("status") ||
       searchParams.get("fileFormat") ||
-      (searchParams.get("sort") && searchParams.get("sort") !== "newest")
+      (searchParams.get("sort") && searchParams.get("sort") !== "newest"),
   );
 
   function buildUrl(next?: Partial<DocumentFilters>) {
@@ -67,7 +104,9 @@ export function SearchFilter({ categories }: SearchFilterProps) {
 
     const values = {
       q: next?.q ?? q,
-      category: next?.category ?? category,
+      classification: next?.classification ?? classification,
+      documentType: next?.documentType ?? documentType,
+      contentArea: next?.contentArea ?? contentArea,
       status: next?.status ?? status,
       fileFormat: next?.fileFormat ?? fileFormat,
       sort: next?.sort ?? sort,
@@ -87,7 +126,9 @@ export function SearchFilter({ categories }: SearchFilterProps) {
 
   function resetFilters() {
     setQ("");
-    setCategory("");
+    setClassification("");
+    setDocumentType("");
+    setContentArea("");
     setStatus("");
     setFileFormat("");
     setSort("newest");
@@ -127,7 +168,7 @@ export function SearchFilter({ categories }: SearchFilterProps) {
             size="sm"
             className={cn(
               "shrink-0 cursor-pointer gap-1.5 text-telkom-grey-600 transition-colors hover:bg-telkom-grey-100",
-              (showFilters || hasActiveFilters) && "bg-telkom-grey-100"
+              (showFilters || hasActiveFilters) && "bg-telkom-grey-100",
             )}
             onClick={() => setShowFilters((prev) => !prev)}
           >
@@ -141,21 +182,42 @@ export function SearchFilter({ categories }: SearchFilterProps) {
             "transition-[opacity] duration-200",
             showFilters || hasActiveFilters
               ? "overflow-visible opacity-100"
-              : "pointer-events-none h-0 overflow-hidden opacity-0"
+              : "pointer-events-none h-0 overflow-hidden opacity-0",
           )}
         >
           <div className="flex flex-wrap items-center gap-1 px-3 py-2.5">
             <FilterDropdown
-              label="Kategori"
-              value={category}
+              label="Klasifikasi"
+              value={classification}
               onChange={(value) => {
-                setCategory(value);
-                applyFilters({ category: value });
+                setClassification(value);
+                applyFilters({ classification: value });
               }}
-              options={[
-                { value: "", label: "Semua kategori" },
-                ...categories.map((item) => ({ value: item, label: item })),
-              ]}
+              options={classificationOptions}
+            />
+
+            <FilterDivider />
+
+            <FilterDropdown
+              label="Jenis"
+              value={documentType}
+              onChange={(value) => {
+                setDocumentType(value);
+                applyFilters({ documentType: value });
+              }}
+              options={documentTypeOptions}
+            />
+
+            <FilterDivider />
+
+            <FilterDropdown
+              label="Materi muatan"
+              value={contentArea}
+              onChange={(value) => {
+                setContentArea(value);
+                applyFilters({ contentArea: value });
+              }}
+              options={contentAreaOptions}
             />
 
             <FilterDivider />

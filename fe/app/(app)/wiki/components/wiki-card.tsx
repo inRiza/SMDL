@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { File } from "lucide-react";
+import { Users } from "lucide-react";
 import type { DocumentListItem, FileFormat } from "@/types/document.types";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
+import {
+  CONTENT_AREAS,
+  DOCUMENT_CLASSIFICATIONS,
+  DOCUMENT_TYPES,
+  labelForOption,
+} from "@/lib/document-metadata";
 import { cn } from "@/lib/utils";
 
-const tableRowClass =
-  "grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-4 px-4 py-2.5 sm:grid-cols-[2.5rem_minmax(0,1fr)_9rem] md:px-5 md:grid-cols-[2.5rem_minmax(0,1fr)_10rem_6.5rem] lg:grid-cols-[2.5rem_minmax(0,1fr)_10rem_6.5rem_5rem_7rem]";
-
-type WikiListItemProps = {
+type WikiDocumentCardProps = {
   document: DocumentListItem;
-  onCategoryClick?: (category: string) => void;
 };
 
 const mapFileFormatToIcon: Record<FileFormat, string> = {
@@ -18,27 +21,15 @@ const mapFileFormatToIcon: Record<FileFormat, string> = {
   pdf: "https://api.iconify.design/bxs/file-pdf.svg",
 };
 
-const statusLabel: Record<DocumentListItem["status"], string> = {
-  ready: "Siap",
-  processing: "Diproses",
-  ler_failed: "LER Gagal",
-};
-
-const statusClass: Record<DocumentListItem["status"], string> = {
-  ready: "text-telkom-grey-700",
-  processing: "text-telkom-grey-600",
-  ler_failed: "text-telkom-red",
-};
-
-function formatFileSize(bytes: string) {
-  const size = Number(bytes);
-  if (Number.isNaN(size)) return "—";
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+function MetaBadge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-md bg-telkom-grey-100 px-2.5 py-1 text-xs font-medium text-telkom-grey-700">
+      {children}
+    </span>
+  );
 }
 
-function formatDate(value: string) {
+function formatUploadDate(value: string) {
   return new Intl.DateTimeFormat("id-ID", {
     day: "numeric",
     month: "short",
@@ -46,104 +37,111 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-export function WikiListItem({ document, onCategoryClick }: WikiListItemProps) {
+function UploaderInfo({ document }: { document: DocumentListItem }) {
+  if (document.organizationName) {
+    return (
+      <div className="flex shrink-0 items-center gap-2.5">
+        <InitialsAvatar
+          name={document.organizationName}
+          kind="organization"
+          size="default"
+        />
+        <div className="min-w-0 text-right">
+          <p className="relative inline-block max-w-[10rem] truncate text-sm font-medium text-telkom-grey-900 sm:max-w-[14rem]">
+            <Users
+              className="pointer-events-none absolute top-1/2 -right-1 size-8 -translate-y-1/2 text-telkom-grey-100"
+              aria-hidden
+            />
+            <span className="relative">{document.organizationName}</span>
+          </p>
+          <p className="text-xs text-telkom-grey-500">Organisasi</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex shrink-0 items-center gap-2.5">
+      <InitialsAvatar name={document.ownerName} kind="user" size="default" />
+      <div className="min-w-0 text-right">
+        <p className="max-w-[10rem] truncate text-sm font-medium text-telkom-grey-900 sm:max-w-[14rem]">
+          {document.ownerName}
+        </p>
+        <p className="text-xs text-telkom-grey-500">Pengunggah</p>
+      </div>
+    </div>
+  );
+}
+
+export function WikiDocumentCard({ document }: WikiDocumentCardProps) {
   const iconSrc = mapFileFormatToIcon[document.fileFormat];
+
+  const badges = [
+    document.classification && {
+      key: "classification",
+      label: labelForOption(DOCUMENT_CLASSIFICATIONS, document.classification),
+    },
+    document.documentType && {
+      key: "documentType",
+      label: labelForOption(DOCUMENT_TYPES, document.documentType),
+    },
+    document.contentArea && {
+      key: "contentArea",
+      label: labelForOption(CONTENT_AREAS, document.contentArea),
+    },
+  ].filter(Boolean) as { key: string; label: string }[];
 
   return (
     <Link
       href={`/documents/${document.id}`}
-      className={cn(
-        tableRowClass,
-        "group border-b border-telkom-grey-100 transition-colors last:border-b-0 hover:bg-telkom-grey-50"
-      )}
+      className="group block w-full px-5 py-5 transition-colors hover:bg-telkom-grey-50/80 md:px-6 md:py-6"
     >
-      <div className="flex items-center justify-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={iconSrc}
-          alt={document.fileFormat.toUpperCase()}
-          width={20}
-          height={20}
-          className="size-5 object-contain"
-        />
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-1 gap-4">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-telkom-grey-50">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={iconSrc}
+              alt={document.fileFormat.toUpperCase()}
+              width={24}
+              height={24}
+              className="size-6 object-contain"
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-semibold text-telkom-grey-900 transition-colors group-hover:text-telkom-red">
+              {document.title}
+            </h3>
+            {document.description && (
+              <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-telkom-grey-500">
+                {document.description}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <time
+          dateTime={document.createdAt}
+          className="shrink-0 text-xs text-telkom-grey-500"
+        >
+          {formatUploadDate(document.createdAt)}
+        </time>
       </div>
 
-      <div className="min-w-0">
-        <p className="truncate text-sm text-telkom-grey-900 transition-colors group-hover:text-telkom-red group-hover:underline">
-          {document.title}
-        </p>
-        {document.description && (
-          <p className="mt-0.5 truncate text-xs text-telkom-grey-500 sm:hidden">
-            {document.description}
-          </p>
-        )}
-      </div>
-
-      <div className="hidden min-w-0 sm:block">
-        {document.category ? (
-          onCategoryClick ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onCategoryClick(document.category!);
-              }}
-              className="max-w-full cursor-pointer truncate text-left text-sm text-telkom-grey-700 transition-colors hover:text-telkom-red hover:underline"
-            >
-              {document.category}
-            </button>
+      <div className="mt-4 flex items-end justify-between gap-4">
+        <div className={cn("flex min-w-0 flex-1 flex-wrap gap-2", badges.length === 0 && "min-h-9")}>
+          {badges.length > 0 ? (
+            badges.map((badge) => (
+              <MetaBadge key={badge.key}>{badge.label}</MetaBadge>
+            ))
           ) : (
-            <span className="truncate text-sm text-telkom-grey-700">
-              {document.category}
-            </span>
-          )
-        ) : (
-          <span className="text-sm text-telkom-grey-400">—</span>
-        )}
-      </div>
+            <span className="text-xs text-telkom-grey-400">Belum ada kategori</span>
+          )}
+        </div>
 
-      <div className="hidden min-w-0 md:block">
-        <span className={cn("text-sm", statusClass[document.status])}>
-          {statusLabel[document.status]}
-        </span>
-      </div>
-
-      <div className="hidden text-sm text-telkom-grey-700 lg:block">
-        {formatFileSize(document.fileSizeBytes)}
-      </div>
-
-      <div className="hidden text-sm text-telkom-grey-700 lg:block">
-        <time dateTime={document.createdAt}>{formatDate(document.createdAt)}</time>
+        <UploaderInfo document={document} />
       </div>
     </Link>
-  );
-}
-
-export function WikiListHeader() {
-  return (
-    <div
-      className={cn(
-        tableRowClass,
-        "border-b border-telkom-grey-200 bg-telkom-grey-100 py-3"
-      )}
-    >
-      <div className="flex items-center justify-center text-telkom-grey-600">
-        <File className="size-[18px]" strokeWidth={1.75} />
-      </div>
-      <span className="text-sm font-semibold text-telkom-grey-800">Nama</span>
-      <span className="hidden text-sm font-semibold text-telkom-grey-800 sm:block">
-        Kategori
-      </span>
-      <span className="hidden text-sm font-semibold text-telkom-grey-800 md:block">
-        Status
-      </span>
-      <span className="hidden text-sm font-semibold text-telkom-grey-800 lg:block">
-        Ukuran
-      </span>
-      <span className="hidden text-sm font-semibold text-telkom-grey-800 lg:block">
-        Diubah
-      </span>
-    </div>
   );
 }

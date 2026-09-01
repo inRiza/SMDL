@@ -21,6 +21,7 @@ import {
 import { FilterDropdown } from "@/app/(app)/wiki/components/filter-dropdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import {
   inviteOrganizationMembers,
   leaveOrganization,
@@ -46,6 +47,7 @@ import {
 } from "@/types/organization.types";
 import type { UserOption } from "@/types/user.types";
 import { cn } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 import {
   formatRelativeTime,
   getActivityActorName,
@@ -108,6 +110,7 @@ function formatRelative(value: string) {
 
 export function OrganizationDetailView({ organization }: OrganizationDetailViewProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const canManage = organization.canManageMembers ?? organization.isOwner;
   const canUpload = organization.canUploadDocuments ?? organization.isOwner;
   const activities = organization.activities ?? [];
@@ -171,14 +174,21 @@ export function OrganizationDetailView({ organization }: OrganizationDetailViewP
     };
   }
 
-  async function runAction(id: string, action: () => Promise<void>) {
+  async function runAction(
+    id: string,
+    action: () => Promise<void>,
+    successMessage?: string
+  ) {
     setBusyId(id);
     setError(null);
     try {
       await action();
+      if (successMessage) toast.success(successMessage);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Terjadi kesalahan");
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusyId(null);
     }
@@ -409,10 +419,18 @@ export function OrganizationDetailView({ organization }: OrganizationDetailViewP
                           className="text-telkom-grey-500 hover:text-telkom-red"
                           disabled={busyId === member.id}
                           aria-label={`Hapus ${member.name}`}
-                          onClick={() => {
-                            if (!window.confirm(`Hapus ${member.name}?`)) return;
-                            void runAction(member.id, () =>
-                              removeOrganizationMember(organization.id, member.id)
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: "Hapus anggota?",
+                              description: `${member.name} akan dihapus dari organisasi ini.`,
+                              confirmLabel: "Hapus anggota",
+                              variant: "destructive",
+                            });
+                            if (!ok) return;
+                            void runAction(
+                              member.id,
+                              () => removeOrganizationMember(organization.id, member.id),
+                              `${member.name} dihapus dari organisasi.`
                             );
                           }}
                         >
@@ -557,10 +575,22 @@ export function OrganizationDetailView({ organization }: OrganizationDetailViewP
                               className="text-telkom-grey-500 hover:text-telkom-red"
                               disabled={busyId === document.id}
                               aria-label={`Cabut ${document.title}`}
-                              onClick={() => {
-                                if (!window.confirm(`Cabut dokumen ${document.title}?`)) return;
-                                void runAction(document.id, () =>
-                                  revokeOrganizationDocument(organization.id, document.id)
+                              onClick={async () => {
+                                const ok = await confirm({
+                                  title: "Cabut dokumen?",
+                                  description: `Dokumen “${document.title}” akan dihapus dari organisasi.`,
+                                  confirmLabel: "Cabut dokumen",
+                                  variant: "destructive",
+                                });
+                                if (!ok) return;
+                                void runAction(
+                                  document.id,
+                                  () =>
+                                    revokeOrganizationDocument(
+                                      organization.id,
+                                      document.id
+                                    ),
+                                  `Dokumen “${document.title}” dicabut.`
                                 );
                               }}
                             >
@@ -1160,15 +1190,10 @@ function UploadDocumentModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [fileFormat, setFileFormat] = useState<"pdf" | "docx">("pdf");
+  const [file, setFile] = useState<File | null>(null);
   const [visibility, setVisibility] = useState<DocumentVisibility>("organization");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const formatOptions = [
-    { value: "pdf" as const, label: "PDF", description: "Portable Document Format" },
-    { value: "docx" as const, label: "DOCX", description: "Microsoft Word Document" },
-  ];
 
   const visibilityOptions: {
     value: DocumentVisibility;
@@ -1198,20 +1223,24 @@ function UploadDocumentModal({
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
+          if (!file) {
+            setError("File wajib dipilih");
+            return;
+          }
           setLoading(true);
           setError(null);
           void uploadOrganizationDocument(organizationId, {
             title,
             description: description || undefined,
             category: category || undefined,
-            fileFormat,
-            fileSizeBytes: 2048,
+            file,
             visibility,
           })
             .then(() => {
               setTitle("");
               setDescription("");
               setCategory("");
+              setFile(null);
               setVisibility("organization");
               onOpenChange(false);
               onSaved();
@@ -1222,10 +1251,15 @@ function UploadDocumentModal({
             .finally(() => setLoading(false));
         }}
       >
-        <div className="flex items-center gap-2 rounded-md border border-telkom-grey-200 bg-telkom-grey-50 px-3 py-3 text-sm text-telkom-grey-600">
-          <Upload className="size-4 shrink-0" />
-          Placeholder file — metadata disimpan & status LER = diproses
-        </div>
+        <WizardField label="File dokumen" required>
+          <Input
+            type="file"
+            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className={wizardInputClass}
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            required
+          />
+        </WizardField>
         <WizardField label="Judul dokumen" required>
           <Input
             value={title}
@@ -1250,29 +1284,6 @@ function UploadDocumentModal({
             placeholder="Deskripsi dokumen"
             className={wizardTextareaClass}
           />
-        </WizardField>
-        <WizardField label="Format file">
-          <div className="grid grid-cols-2 gap-2">
-            {formatOptions.map((option) => {
-              const selected = fileFormat === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setFileFormat(option.value)}
-                  className={cn(
-                    "cursor-pointer rounded-md border px-3 py-3 text-left transition-colors",
-                    selected
-                      ? "border-telkom-red bg-telkom-grey-50"
-                      : "border-telkom-grey-200 bg-white hover:border-telkom-grey-300"
-                  )}
-                >
-                  <p className="text-sm font-medium text-telkom-grey-900">{option.label}</p>
-                  <p className="mt-0.5 text-xs text-telkom-grey-500">{option.description}</p>
-                </button>
-              );
-            })}
-          </div>
         </WizardField>
         <WizardField label="Akses dokumen" required>
           <div className="grid gap-2">
@@ -1308,7 +1319,7 @@ function UploadDocumentModal({
           </button>
           <button
             type="submit"
-            disabled={loading || !title.trim()}
+            disabled={loading || !title.trim() || !file}
             className={wizardPrimaryBtnClass}
           >
             {loading ? "Mengunggah..." : "Unggah"}

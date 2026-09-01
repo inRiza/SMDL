@@ -4,11 +4,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Bot, ExternalLink, FileText, Send } from "lucide-react";
 import { SearchLoadingIndicator } from "@/components/app/search-loading-indicator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { Button } from "@/components/ui/button";
 import { fetchMe } from "@/lib/api/auth/route";
 import { sendTellsMessage } from "@/lib/api/tells/route";
-import { getMemberAvatarUrl } from "@/lib/member-display";
 import type { TellsCitation, TellsMessage } from "@/types/tells.types";
 import { cn } from "@/lib/utils";
 import { TellsHistoryToggle } from "./tells-conversation-sidebar";
@@ -108,23 +107,13 @@ function ChatAvatar({
 }) {
   if (role === "assistant") {
     return (
-      <Avatar size="sm" className="after:border-0">
-        <AvatarImage src={getMemberAvatarUrl("TELLS")} alt="TELLS" />
-        <AvatarFallback className="bg-telkom-red/10 text-telkom-red">
-          <Bot className="size-3.5" />
-        </AvatarFallback>
-      </Avatar>
+      <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-telkom-red/10 text-telkom-red">
+        <Bot className="size-3.5" />
+      </div>
     );
   }
 
-  return (
-    <Avatar size="sm" className="after:border-0">
-      <AvatarImage src={getMemberAvatarUrl(userName)} alt={userName} />
-      <AvatarFallback className="bg-telkom-grey-100 text-telkom-grey-700">
-        {userName.slice(0, 1).toUpperCase()}
-      </AvatarFallback>
-    </Avatar>
-  );
+  return <InitialsAvatar name={userName} kind="user" size="sm" />;
 }
 
 function TellsWelcomeHero({ userName }: { userName: string }) {
@@ -132,12 +121,9 @@ function TellsWelcomeHero({ userName }: { userName: string }) {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center">
-      <Avatar size="lg" className="after:border-0">
-        <AvatarImage src={getMemberAvatarUrl("TELLS")} alt="TELLS" />
-        <AvatarFallback className="bg-telkom-red/10 text-telkom-red">
-          <Bot className="size-5" />
-        </AvatarFallback>
-      </Avatar>
+      <div className="flex size-11 items-center justify-center rounded-full bg-telkom-red/10 text-telkom-red">
+        <Bot className="size-5" />
+      </div>
 
       <h2 className="mt-5 text-xl font-semibold text-telkom-grey-900">
         Halo, {displayName}!
