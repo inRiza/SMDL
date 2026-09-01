@@ -1,7 +1,11 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { ensureAuditPipeline } from "@/lib/audit/start-audit-pipeline";
 import { authMiddleware } from "./lib/auth/auth.middleware";
 import { env } from "./lib/config/env.config";
+import { ensurePrismaConnected } from "./lib/db/prisma";
+import { auditRoute } from "./route/audit/audit.route";
+import { adminRoute } from "./route/admin/admin.route";
 import { authRoute } from "./route/auth/auth.route";
 import { documentRoute } from "./route/document/document.route";
 import { organizationRoute } from "./route/organization/organization.route";
@@ -33,10 +37,17 @@ app.route("/api/documents", documentRoute);
 app.route("/api/organizations", organizationRoute);
 app.route("/api/users", userRoute);
 app.route("/api/tells", tellsRoute);
+app.route("/api/audit", auditRoute);
+app.route("/api/admin", adminRoute);
+
+ensureAuditPipeline();
+void ensurePrismaConnected();
 
 export default {
   port: env.PORT,
   fetch: app.fetch,
+  // LER extraction streams (SSE) stay open well past Bun's 10s default
+  idleTimeout: 255,
 };
 
 console.log(`Backend running on http://localhost:${env.PORT}`);
