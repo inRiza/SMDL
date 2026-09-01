@@ -1,29 +1,31 @@
-import Link from "next/link";
+import { LandingButton } from "@/components/landing/landing-buttons";
+import { ScrollReveal } from "@/components/landing/scroll-reveal";
 
 export function Cta() {
   return (
-    <section className="bg-telkom-grey-50 py-20 lg:py-24">
+    <section className="relative py-24 lg:py-32">
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-sm bg-telkom-black px-8 py-14 text-center sm:px-16 lg:py-16">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-telkom-red/20" />
-          <div className="pointer-events-none absolute -bottom-12 -left-12 h-36 w-36 rounded-full bg-white/5" />
+        <ScrollReveal direction="scale">
+          <div className="landing-card relative overflow-hidden px-8 py-16 text-center sm:px-16 lg:py-20">
+            <div
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(185,28,28,0.12)_0%,transparent_70%)]"
+              aria-hidden
+            />
 
-          <div className="relative">
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">
-              Siap mengelola dokumen legal dengan lebih efisien?
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-base text-telkom-grey-400">
-              Akses platform SMDL untuk mulai mengunggah, mencari, dan
-              mengelola dokumen legal perusahaan dengan aman.
-            </p>
-            <Link
-              href="/login"
-              className="mt-8 inline-flex items-center justify-center rounded-sm bg-telkom-red px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-telkom-red-dark"
-            >
-              Masuk ke SMDL
-            </Link>
+            <div className="relative">
+              <h2 className="font-heading text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
+                Siap mengelola dokumen legal dengan lebih efisien?
+              </h2>
+              <p className="mx-auto mt-4 max-w-lg text-base text-white/55">
+                Akses platform SMDL untuk mulai mengunggah, mencari, dan
+                mengelola dokumen legal perusahaan dengan aman.
+              </p>
+              <LandingButton href="/login" variant="primary" className="mt-8">
+                Masuk ke SMDL
+              </LandingButton>
+            </div>
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </section>
   );

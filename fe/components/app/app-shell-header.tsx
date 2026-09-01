@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogOut } from "lucide-react";
+import { TelkomLogo } from "@/components/brand/telkom-logo";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { fetchMe, logoutRequest } from "@/lib/api/auth/route";
 import type { AuthUser } from "@/types/auth.types";
 
 export function AppShellHeader() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const homeHref = pathname.startsWith("/admin") ? "/admin" : "/wiki";
 
   useEffect(() => {
     fetchMe()
@@ -29,11 +32,14 @@ export function AppShellHeader() {
       <div className="flex min-w-0 items-center gap-3">
         <SidebarTrigger className="-ml-1 shrink-0" />
 
-        <Link href="/wiki" className="min-w-0 leading-tight">
-          <p className="truncate text-sm font-bold">SMDL</p>
-          <p className="truncate text-[10px]">
-            PT Telkom Indonesia
-          </p>
+        <Link href={homeHref} className="flex min-w-0 items-center gap-2.5 leading-tight">
+          <TelkomLogo onDarkBackground size={28} />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold">SMDL</p>
+            <p className="truncate text-[10px] text-white/80">
+              PT Telkom Indonesia
+            </p>
+          </div>
         </Link>
       </div>
 
@@ -48,7 +54,7 @@ export function AppShellHeader() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-xs cursor-pointer hover:bg-red-800"
+            className="flex cursor-pointer items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-xs hover:bg-red-800"
           >
             <LogOut className="size-3.5" />
             Keluar

@@ -20,13 +20,8 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { sidebarChildLinkClass, sidebarNavButtonClass } from "@/lib/sidebar-nav";
 import { cn } from "@/lib/utils";
-
-const navItemClass =
-  "!h-11 rounded-xl px-3.5 text-[15px] font-medium gap-3 [&_svg]:size-[18px] transition-colors hover:bg-telkom-black/4 data-active:bg-telkom-black/4 data-active:font-semibold data-active:text-telkom-black";
-
-const childItemClass =
-  "relative z-[1] flex h-8 items-center rounded-md px-2 text-[13px] text-telkom-grey-700 transition-colors hover:bg-telkom-black/4";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -62,8 +57,7 @@ export function AppSidebar() {
                   render={<Link href="/wiki" />}
                   isActive={isWikiActive}
                   tooltip="Wiki"
-                  size="lg"
-                  className={navItemClass}
+                  className={sidebarNavButtonClass}
                 >
                   <BookOpen />
                   <span>Wiki</span>
@@ -75,8 +69,7 @@ export function AppSidebar() {
                   render={<Link href="/documents" />}
                   isActive={isDocumentsActive}
                   tooltip="Dokumen"
-                  size="lg"
-                  className={navItemClass}
+                  className={sidebarNavButtonClass}
                 >
                   <FileText />
                   <span>Dokumen</span>
@@ -88,16 +81,15 @@ export function AppSidebar() {
                   type="button"
                   isActive={isOrgSection}
                   tooltip="Organisasi"
-                  size="lg"
-                  className={navItemClass}
+                  className={sidebarNavButtonClass}
                   onClick={() => setOrgOpen((prev) => !prev)}
                 >
                   <Users />
                   <span className="flex-1 text-left">Organisasi</span>
                   <ChevronDown
                     className={cn(
-                      "ml-auto size-4 opacity-70 transition-transform",
-                      orgOpen && "rotate-180"
+                      "ml-auto size-4 opacity-70 transition-transform group-data-[collapsible=icon]:hidden",
+                      orgOpen && "rotate-180",
                     )}
                   />
                 </SidebarMenuButton>
@@ -112,10 +104,10 @@ export function AppSidebar() {
                       <Link
                         href="/organizations"
                         className={cn(
-                          childItemClass,
+                          sidebarChildLinkClass,
                           pathname === "/organizations" &&
                             !mineActive &&
-                            "bg-telkom-black/4 font-semibold text-telkom-black"
+                            "bg-telkom-black/4 font-semibold text-telkom-black",
                         )}
                       >
                         Kumpulan Organisasi
@@ -129,10 +121,10 @@ export function AppSidebar() {
                       <Link
                         href="/organizations?mine=1"
                         className={cn(
-                          childItemClass,
+                          sidebarChildLinkClass,
                           pathname === "/organizations" &&
                             mineActive &&
-                            "bg-telkom-black/4 font-semibold text-telkom-black"
+                            "bg-telkom-black/4 font-semibold text-telkom-black",
                         )}
                       >
                         Organisasi Saya
@@ -147,8 +139,7 @@ export function AppSidebar() {
                   render={<Link href="/tells" />}
                   isActive={isTellsActive}
                   tooltip="TELLS"
-                  size="lg"
-                  className={navItemClass}
+                  className={sidebarNavButtonClass}
                 >
                   <MessageSquare />
                   <span>TELLS</span>
