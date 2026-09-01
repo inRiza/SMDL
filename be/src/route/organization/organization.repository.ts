@@ -1,9 +1,12 @@
 import type { Prisma } from "@prisma/client";
+import { AUDIT_EVENT_TYPES } from "@/lib/audit/audit-event-types";
+import { recordAudit } from "@/lib/audit/record-audit";
 import { prismaClient } from "@/lib/db/prisma";
 import { recordDocumentActivity } from "@/lib/document/document-activity-log";
+import { buildStorageKey, saveFile } from "@/lib/storage/file-storage";
 import { getMemberDisplayName } from "@/lib/organization/member-display";
 import type {
-  CreateOrganizationDocumentInput,
+  CreateOrganizationDocumentWithFile,
   CreateOrganizationInput,
   InviteOrganizationMembersInput,
   OrganizationListQueryInput,
@@ -168,7 +171,7 @@ export class OrganizationRepository {
   }
 
   async create(input: CreateOrganizationInput, ownerId: string, ownerEmail: string) {
-    return prismaClient.$transaction(async (tx) => {
+    const organization = await prismaClient.$transaction(async (tx) => {
       const organization = await tx.organization.create({
         data: {
           name: input.name,
@@ -213,6 +216,19 @@ export class OrganizationRepository {
 
       return organization;
     });
+
+    void recordAudit({
+      eventType: AUDIT_EVENT_TYPES.ORGANIZATION_CREATE,
+      summary: `${ownerEmail} membuat organisasi “${organization.name}”`,
+      userId: ownerId,
+      userEmail: ownerEmail,
+      userName: ownerEmail,
+      aggregateId: organization.id,
+      aggregateType: "organization",
+      metadata: { type: organization.type },
+    }).catch((error) => console.error("[audit] organization create record error", error));
+
+    return organization;
   }
 
   async findOwnedOrganization(organizationId: string, ownerId: string) {
@@ -267,6 +283,19 @@ export class OrganizationRepository {
       metadata: input,
     });
 
+    void recordAudit({
+      eventType: AUDIT_EVENT_TYPES.ORGANIZATION_UPDATE,
+      summary: changes.length
+        ? `memperbarui organisasi: ${changes.join(", ")}`
+        : "memperbarui organisasi",
+      userId: ownerId,
+      userEmail: actorName.includes("@") ? actorName : null,
+      userName: actorName,
+      aggregateId: organizationId,
+      aggregateType: "organization",
+      metadata: input,
+    }).catch((error) => console.error("[audit] organization update record error", error));
+
     return updated;
   }
 
@@ -305,6 +334,17 @@ export class OrganizationRepository {
         summary: `menambahkan anggota ${invite.name ?? email} sebagai ${invite.accessLevel ?? "member"}`,
         metadata: { email, accessLevel: invite.accessLevel ?? "member" },
       });
+
+      void recordAudit({
+        eventType: AUDIT_EVENT_TYPES.ORGANIZATION_MEMBER_ADD,
+        summary: `menambahkan anggota ${invite.name ?? email} sebagai ${invite.accessLevel ?? "member"}`,
+        userId: invitedById,
+        userEmail: actorName.includes("@") ? actorName : null,
+        userName: actorName,
+        aggregateId: organizationId,
+        aggregateType: "organization",
+        metadata: { email, accessLevel: invite.accessLevel ?? "member" },
+      }).catch((error) => console.error("[audit] organization member add record error", error));
     }
 
     return prismaClient.organizationMember.findMany({
@@ -357,6 +397,17 @@ export class OrganizationRepository {
       metadata: { memberId, from: previous, to: input.accessLevel },
     });
 
+    void recordAudit({
+      eventType: AUDIT_EVENT_TYPES.ACCESS_CHANGE,
+      summary: `mengubah akses ${member.email} dari ${previous} menjadi ${input.accessLevel}`,
+      userId: ownerId,
+      userEmail: actorName.includes("@") ? actorName : null,
+      userName: actorName,
+      aggregateId: organizationId,
+      aggregateType: "organization",
+      metadata: { memberId, from: previous, to: input.accessLevel },
+    }).catch((error) => console.error("[audit] member access record error", error));
+
     return "ok" as const;
   }
 
@@ -393,6 +444,17 @@ export class OrganizationRepository {
       metadata: { memberId, email: member.email },
     });
 
+    void recordAudit({
+      eventType: AUDIT_EVENT_TYPES.ORGANIZATION_MEMBER_REMOVE,
+      summary: `menghapus anggota ${member.email}`,
+      userId: ownerId,
+      userEmail: actorName.includes("@") ? actorName : null,
+      userName: actorName,
+      aggregateId: organizationId,
+      aggregateType: "organization",
+      metadata: { memberId, email: member.email },
+    }).catch((error) => console.error("[audit] member remove record error", error));
+
     return "ok" as const;
   }
 
@@ -400,10 +462,13 @@ export class OrganizationRepository {
     organizationId: string,
     ownerId: string,
     actorName: string,
-    input: CreateOrganizationDocumentInput
+    input: CreateOrganizationDocumentWithFile
   ) {
     const organization = await this.findOwnedOrganization(organizationId, ownerId);
     if (!organization) return null;
+
+    const storageKey = buildStorageKey(`org/${organizationId}`, input.fileName);
+    await saveFile(storageKey, input.fileBuffer);
 
     const document = await prismaClient.document.create({
       data: {
@@ -411,10 +476,10 @@ export class OrganizationRepository {
         description: input.description,
         category: input.category,
         fileFormat: input.fileFormat,
-        fileSizeBytes: BigInt(input.fileSizeBytes ?? 1024),
-        status: "processing",
+        fileSizeBytes: BigInt(input.fileSizeBytes),
+        status: "ready",
         visibility: input.visibility,
-        storageKey: `org/${organizationId}/${crypto.randomUUID()}`,
+        storageKey,
         ownerId,
         organizationId,
       },
@@ -449,7 +514,6 @@ export class OrganizationRepository {
       metadata: { documentId: document.id, title: document.title, visibility: input.visibility },
     });
 
-    // simulate async LER kickoff — status stays processing
     return document;
   }
 
@@ -548,7 +612,12 @@ export class OrganizationRepository {
       metadata: { documentId, title: existing.title },
     });
 
-    await prismaClient.document.delete({ where: { id: documentId } });
+    await prismaClient.$transaction([
+      prismaClient.documentEntity.deleteMany({ where: { documentId } }),
+      prismaClient.documentChunk.deleteMany({ where: { documentId } }),
+      prismaClient.documentSection.deleteMany({ where: { documentId } }),
+      prismaClient.document.delete({ where: { id: documentId } }),
+    ]);
 
     return "ok" as const;
   }
@@ -625,6 +694,21 @@ export class OrganizationRepository {
       });
     });
 
+    void recordAudit({
+      eventType: AUDIT_EVENT_TYPES.ACCESS_CHANGE,
+      summary: `mentransfer kepemilikan ke ${newOwnerName} dan menjadi ${input.demotedAccessLevel}`,
+      userId: currentOwnerId,
+      userEmail: actorName.includes("@") ? actorName : null,
+      userName: actorName,
+      aggregateId: organizationId,
+      aggregateType: "organization",
+      metadata: {
+        toOwnerMemberId: newOwnerMember.id,
+        toOwnerUserId: newOwnerMember.userId,
+        demotedAccessLevel: input.demotedAccessLevel,
+      },
+    }).catch((error) => console.error("[audit] ownership transfer record error", error));
+
     return "ok" as const;
   }
 
@@ -658,6 +742,17 @@ export class OrganizationRepository {
       summary: `meninggalkan organisasi`,
       metadata: { memberId: member.id, email: member.email },
     });
+
+    void recordAudit({
+      eventType: AUDIT_EVENT_TYPES.ORGANIZATION_MEMBER_REMOVE,
+      summary: "meninggalkan organisasi",
+      userId,
+      userEmail: actorName.includes("@") ? actorName : null,
+      userName: actorName,
+      aggregateId: organizationId,
+      aggregateType: "organization",
+      metadata: { memberId: member.id, email: member.email },
+    }).catch((error) => console.error("[audit] organization leave record error", error));
 
     return { deleted: false as const };
   }

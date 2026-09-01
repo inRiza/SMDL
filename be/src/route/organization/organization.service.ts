@@ -8,7 +8,7 @@ import type {
 } from "@/types/organization.types";
 import { getMemberDisplayName } from "@/lib/organization/member-display";
 import type {
-  CreateOrganizationDocumentInput,
+  CreateOrganizationDocumentWithFile,
   CreateOrganizationInput,
   InviteOrganizationMembersInput,
   OrganizationListQueryInput,
@@ -278,7 +278,7 @@ export class OrganizationService {
     organizationId: string,
     ownerId: string,
     actorName: string,
-    input: CreateOrganizationDocumentInput
+    input: CreateOrganizationDocumentWithFile
   ) {
     const document = await this.repository.createDocument(
       organizationId,

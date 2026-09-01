@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { getRequestUserId } from "@/lib/auth/request-user";
+import { parseUploadFormData } from "@/lib/upload/parse-upload";
 import {
-  CreateOrganizationDocumentSchema,
   CreateOrganizationSchema,
   InviteOrganizationMembersSchema,
   OrganizationListQuerySchema,
@@ -297,29 +297,36 @@ export class OrganizationController {
     const id = c.req.param("id");
     if (!id) return c.json({ error: "Organization id is required" }, 400);
 
-    const body = await c.req.json().catch(() => null);
-    const parsed = CreateOrganizationDocumentSchema.safeParse(body);
-    if (!parsed.success) {
+    try {
+      const formData = await c.req.formData();
+      const upload = await parseUploadFormData(formData);
+      const visibility = formData.get("visibility");
+
+      if (visibility !== "public" && visibility !== "organization") {
+        return c.json({ error: "Visibility wajib diisi (public atau organization)" }, 400);
+      }
+
+      const document = await this.service.createDocument(id, userId, getActorName(c), {
+        title: upload.title,
+        description: upload.description,
+        category: upload.category,
+        fileFormat: upload.fileFormat,
+        visibility,
+        fileBuffer: upload.fileBuffer,
+        fileName: upload.fileName,
+        fileSizeBytes: upload.fileSizeBytes,
+      });
+      if (!document) {
+        return c.json({ error: "Organization not found or forbidden" }, 403);
+      }
+
+      return c.json(document, 201);
+    } catch (error) {
       return c.json(
-        {
-          error: "Invalid request body",
-          details: parsed.error.flatten().fieldErrors,
-        },
+        { error: error instanceof Error ? error.message : "Gagal mengunggah dokumen" },
         400
       );
     }
-
-    const document = await this.service.createDocument(
-      id,
-      userId,
-      getActorName(c),
-      parsed.data
-    );
-    if (!document) {
-      return c.json({ error: "Organization not found or forbidden" }, 403);
-    }
-
-    return c.json(document, 201);
   };
 
   updateDocument = async (c: Context) => {
