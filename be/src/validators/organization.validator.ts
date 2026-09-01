@@ -73,4 +73,9 @@ export type InviteOrganizationMembersInput = z.infer<typeof InviteOrganizationMe
 export type UpdateMemberAccessInput = z.infer<typeof UpdateMemberAccessSchema>;
 export type TransferOwnershipInput = z.infer<typeof TransferOwnershipSchema>;
 export type CreateOrganizationDocumentInput = z.infer<typeof CreateOrganizationDocumentSchema>;
+export type CreateOrganizationDocumentWithFile = CreateOrganizationDocumentInput & {
+  fileBuffer: Buffer;
+  fileName: string;
+  fileSizeBytes: number;
+};
 export type UpdateOrganizationDocumentInput = z.infer<typeof UpdateOrganizationDocumentSchema>;
