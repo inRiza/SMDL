@@ -201,6 +201,7 @@ model Document {
   owner          User               @relation(fields: [ownerId], references: [id])
   chunks         DocumentChunk[]
   entities       DocumentEntity[]
+  sections       DocumentSection[]
   activities     DocumentActivity[]
   organizationId String?            @map("organization_id") @db.Uuid
   organization   Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
@@ -233,6 +234,21 @@ model DocumentEntity {
   @@map("document_entities")
 }
 
+model DocumentSection {
+  id           String   @id @default(uuid()) @db.Uuid
+  documentId   String   @map("document_id") @db.Uuid
+  orderIndex   Int      @map("order_index")
+  blockType    String   @map("block_type")
+  headingLevel Int      @default(0) @map("heading_level")
+  pageNumber   Int      @default(0) @map("page_number")
+  content      String
+  createdAt    DateTime @default(now()) @map("created_at")
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, orderIndex])
+  @@map("document_sections")
+}
+
 model DocumentActivity {
   id         String    @id @default(uuid()) @db.Uuid
   documentId String?   @map("document_id") @db.Uuid
@@ -255,7 +271,7 @@ model DocumentChunk {
   chunkIndex Int      @map("chunk_index")
   content    String
   createdAt  DateTime @default(now()) @map("created_at")
-  document   Document @relation(fields: [documentId], references: [id])
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
   @@map("document_chunks")
