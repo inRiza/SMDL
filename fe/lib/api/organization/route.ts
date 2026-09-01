@@ -175,17 +175,22 @@ export async function uploadOrganizationDocument(
     title: string;
     description?: string;
     category?: string;
-    fileFormat: "pdf" | "docx";
-    fileSizeBytes?: number;
+    file: File;
     visibility: "public" | "organization";
   }
 ): Promise<OrganizationDocumentItem> {
+  const formData = new FormData();
+  formData.set("title", input.title);
+  if (input.description) formData.set("description", input.description);
+  if (input.category) formData.set("category", input.category);
+  formData.set("visibility", input.visibility);
+  formData.set("file", input.file);
+
   const res = await fetchApi(
     `${getApiBeOrganizations()}/${organizationId}/documents`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
+      body: formData,
     }
   );
 
