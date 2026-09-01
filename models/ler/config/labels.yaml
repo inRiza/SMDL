@@ -1,0 +1,40 @@
+# map NER BIO labels → SMDL entity types
+ner_to_smdl:
+  PER: PARTY
+  B-PER: PARTY
+  I-PER: PARTY
+  PERSON: PARTY
+  B-PERSON: PARTY
+  I-PERSON: PARTY
+  ORG: ORG
+  B-ORG: ORG
+  I-ORG: ORG
+  ORGANIZATION: ORG
+  B-ORGANIZATION: ORG
+  I-ORGANIZATION: ORG
+  LOC: LOCATION
+  B-LOC: LOCATION
+  I-LOC: LOCATION
+  LOCATION: LOCATION
+  B-LOCATION: LOCATION
+  I-LOCATION: LOCATION
+  GPE: LOCATION
+  B-GPE: LOCATION
+  I-GPE: LOCATION
+  DAT: DATE
+  B-DAT: DATE
+  I-DAT: DATE
+  DATE: DATE
+  B-DATE: DATE
+  I-DATE: DATE
+  TIM: DATE
+  B-TIM: DATE
+  I-TIM: DATE
+
+party_org_keywords:
+  - "pt "
+  - "cv "
+  - "perseroan terbatas"
+  - "tbk"
+  - "pihak pertama"
+  - "pihak kedua"

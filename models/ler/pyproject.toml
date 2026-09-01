@@ -1,0 +1,47 @@
+[project]
+name = "smdl-ler"
+version = "0.2.0"
+description = "Indonesian LER service — Docling + IndoBERT (+ layout fusion)"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0,<1.0",
+  "uvicorn[standard]>=0.32.0,<1.0",
+  "python-multipart>=0.0.20",
+  "pydantic>=2.10.0,<3.0",
+  "pydantic-settings>=2.6.0,<3.0",
+  "pyyaml>=6.0.0",
+  "python-dotenv>=1.0.0",
+  "docling>=2.30.0",
+  "torch>=2.9.0",
+  "transformers>=4.47.0,<5.0",
+  "numpy>=2.0.0",
+]
+
+[project.scripts]
+ler = "ler.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3.0",
+  "httpx>=0.28.0",
+]
+train = [
+  "datasets>=3.2.0",
+  "seqeval>=1.2.2",
+  "scikit-learn>=1.6.0",
+  "accelerate>=1.2.0",
+]
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ler"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,21 @@
+model_variant: layout
+base_model: indobenchmark/indobert-base-p1
+ner_model: treamyracle/indobert-ner-gold
+confidence_threshold: 0.5
+max_text_chars: 50000
+window_max_chars: 4000
+window_overlap_chars: 200
+
+variants:
+  baseline:
+    description: "Docling → text → IndoBERT NER"
+    use_layout: false
+    use_structure: false
+  layout:
+    description: "Docling → text + bbox → IndoBERT + layout fusion"
+    use_layout: true
+    use_structure: false
+  layout_structure:
+    description: "Docling → text + bbox + element type → full fusion"
+    use_layout: true
+    use_structure: true

@@ -1,0 +1,17 @@
+services:
+  ler-service:
+    build: .
+    container_name: smdl-ler
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      LER_MODEL_VARIANT: baseline
+      LER_BASE_MODEL: indobenchmark/indobert-base-p1
+      LER_NER_MODEL: treamyracle/indobert-ner-gold
+      LER_CONFIDENCE_THRESHOLD: "0.5"
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+
+volumes:
+  huggingface_cache:
