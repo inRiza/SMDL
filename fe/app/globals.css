@@ -96,6 +96,213 @@
   animation: verified-icon-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+.landing-page-bg {
+  background: #ffffff;
+}
+
+.feature-bracket-card-light {
+  position: relative;
+  padding: 2rem 1.75rem;
+}
+
+.feature-icon-box-light {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.125rem;
+  border: 1px solid rgba(220, 38, 38, 0.12);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.landing-label {
+  display: inline-block;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.375rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.landing-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1.5rem;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.landing-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* scroll reveal */
+.scroll-reveal {
+  opacity: 0;
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scroll-reveal-up { transform: translateY(36px); }
+.scroll-reveal-left { transform: translateX(-36px); }
+.scroll-reveal-right { transform: translateX(36px); }
+.scroll-reveal-scale { transform: scale(0.96); }
+
+.scroll-reveal-visible {
+  opacity: 1;
+  transform: translate(0) scale(1);
+}
+
+.landing-parallax {
+  transition: transform 0.4s ease-out;
+}
+
+.landing-parallax:hover {
+  transform: translateY(-4px);
+}
+
+.landing-mock {
+  transition: box-shadow 0.4s ease, transform 0.4s ease;
+}
+
+.landing-mock:hover {
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.feature-bracket-card {
+  position: relative;
+  padding: 2rem 1.75rem;
+  transition: background-color 0.3s ease;
+}
+
+.feature-bracket-card:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.feature-bracket {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: rgba(255, 255, 255, 0.2);
+  transition: border-color 0.3s ease;
+}
+
+.feature-bracket-card:hover .feature-bracket {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.feature-bracket-tl {
+  top: 0;
+  left: 0;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.feature-bracket-tr {
+  top: 0;
+  right: 0;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+
+.feature-bracket-bl {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}
+
+.feature-bracket-br {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+}
+
+.feature-icon-box {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.feature-bracket-card:hover .feature-icon-box {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Landing hero ─────────────────────────────────────── */
+
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-animate {
+  animation: hero-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-animate-1 { animation-delay: 0.08s; }
+.hero-animate-2 { animation-delay: 0.18s; }
+.hero-animate-3 { animation-delay: 0.28s; }
+
+/* hero-bg kept for backwards compat — page uses landing-page-bg */
+.hero-bg {
+  display: none;
+}
+
+.btn-landing-primary {
+  background: var(--telkom-red);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+}
+
+.btn-landing-primary:hover {
+  background: var(--telkom-red-dark);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.btn-landing-primary:active {
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-hero-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.btn-hero-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
 .corner-float-square {
   transition: transform 0.3s ease-out;
 }
@@ -118,7 +325,9 @@
   --telkom-grey-800: #1f2937;
   --telkom-grey-900: #111827;
   --telkom-black: #020817;
-  --font-so: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+  --telkom-maroon: #4a0a0a;
+  --telkom-maroon-deep: #2d0505;
+  --font-so: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   --shadow-sm: 0 1px 2px rgba(2, 8, 23, 0.05);
   --shadow-md: 0 2px 8px rgba(2, 8, 23, 0.08);
@@ -173,6 +382,8 @@
   --color-telkom-grey-800: var(--telkom-grey-800);
   --color-telkom-grey-900: var(--telkom-grey-900);
   --color-telkom-black: var(--telkom-black);
+  --color-telkom-maroon: var(--telkom-maroon);
+  --color-telkom-maroon-deep: var(--telkom-maroon-deep);
   --font-sans: var(--font-so);
   --font-heading: var(--font-so);
   --color-sidebar-ring: var(--sidebar-ring);

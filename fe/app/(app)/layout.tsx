@@ -18,7 +18,7 @@ export default function AppLayout({
         <Suspense fallback={null}>
           <AppSidebar />
         </Suspense>
-        <SidebarInset className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white shadow-none! md:mb-3 md:mr-3 md:rounded-xl">
+        <SidebarInset className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white shadow-none! md:mb-3 md:mr-3 md:rounded-sm">
           {children}
         </SidebarInset>
       </div>
