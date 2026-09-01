@@ -1,8 +1,8 @@
 import type { Context } from "hono";
 import { getRequestUserId } from "@/lib/auth/request-user";
+import { parseUploadFormData } from "@/lib/upload/parse-upload";
 import { DocumentService } from "./document.service";
 import {
-  CreatePersonalDocumentSchema,
   DocumentListQuerySchema,
   UpdatePersonalDocumentSchema,
 } from "@/validators/document.validator";
@@ -60,30 +60,39 @@ export class DocumentController {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const body = await c.req.json().catch(() => null);
-    const parsed = CreatePersonalDocumentSchema.safeParse(body);
-    if (!parsed.success) {
-      return c.json(
-        {
-          error: "Invalid request body",
-          details: parsed.error.flatten().fieldErrors,
-        },
-        400
-      );
-    }
-
     const workspace = await this.service.getWorkspace(userId);
     if (!workspace?.canUpload) {
       return c.json({ error: "Forbidden" }, 403);
     }
 
-    const document = await this.service.createPersonalDocument(
-      userId,
-      getActorName(c),
-      parsed.data
-    );
+    try {
+      const formData = await c.req.formData();
+      const upload = await parseUploadFormData(formData);
 
-    return c.json(document, 201);
+      const document = await this.service.createPersonalDocument(userId, getActorName(c), {
+        title: upload.title,
+        description: upload.description,
+        category: upload.category,
+        documentType: upload.documentType,
+        contentArea: upload.contentArea,
+        classification: upload.classification,
+        publishedAt: upload.publishedAt,
+        revision: upload.revision,
+        legalStatus: upload.legalStatus,
+        source: upload.source,
+        fileFormat: upload.fileFormat,
+        fileBuffer: upload.fileBuffer,
+        fileName: upload.fileName,
+        fileSizeBytes: upload.fileSizeBytes,
+      });
+
+      return c.json(document, 201);
+    } catch (error) {
+      return c.json(
+        { error: error instanceof Error ? error.message : "Gagal mengunggah dokumen" },
+        400
+      );
+    }
   };
 
   update = async (c: Context) => {
@@ -160,5 +169,36 @@ export class DocumentController {
     }
 
     return c.json(document);
+  };
+
+  getFile = async (c: Context) => {
+    const id = c.req.param("id");
+    if (!id) {
+      return c.json({ error: "Document id is required" }, 400);
+    }
+
+    const userId = getRequestUserId(c) ?? undefined;
+    const inline = c.req.query("inline") !== "0";
+    const result = await this.service.getDocumentFile(id, userId, inline);
+
+    if (result === "forbidden") {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    if (result === "not_found") {
+      return c.json({ error: "Document not found" }, 404);
+    }
+
+    const disposition = result.inline ? "inline" : "attachment";
+    const encodedName = encodeURIComponent(result.fileName);
+
+    return new Response(result.buffer, {
+      headers: {
+        "Content-Type": result.mimeType,
+        "Content-Disposition": `${disposition}; filename="${encodedName}"; filename*=UTF-8''${encodedName}`,
+        "Content-Length": String(result.buffer.length),
+        "Cache-Control": "private, max-age=3600",
+      },
+    });
   };
 }

@@ -1,13 +1,14 @@
 import type { Prisma } from "@prisma/client";
 import { prismaClient } from "@/lib/db/prisma";
 import { recordDocumentActivity } from "@/lib/document/document-activity-log";
+import { buildStorageKey, deleteStoredFile, saveFile } from "@/lib/storage/file-storage";
 import {
   buildDocumentAccessWhere,
   canAccessDocument,
   getAccessibleOrganizationIds,
 } from "@/lib/document/document-access";
 import type {
-  CreatePersonalDocumentInput,
+  CreatePersonalDocumentWithFile,
   DocumentListQueryInput,
   UpdatePersonalDocumentInput,
 } from "@/validators/document.validator";
@@ -36,6 +37,27 @@ function buildWhere(
     where.AND = [
       ...(Array.isArray(where.AND) ? where.AND : [where.AND]),
       { category: { equals: query.category, mode: "insensitive" } },
+    ];
+  }
+
+  if (query.classification) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : [where.AND]),
+      { classification: query.classification },
+    ];
+  }
+
+  if (query.documentType) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : [where.AND]),
+      { documentType: query.documentType },
+    ];
+  }
+
+  if (query.contentArea) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : [where.AND]),
+      { contentArea: query.contentArea },
     ];
   }
 
@@ -76,18 +98,60 @@ const listSelect = {
   title: true,
   description: true,
   category: true,
+  documentType: true,
+  contentArea: true,
+  classification: true,
+  publishedAt: true,
+  revision: true,
+  legalStatus: true,
+  source: true,
   fileFormat: true,
   fileSizeBytes: true,
   status: true,
   visibility: true,
   organizationId: true,
   createdAt: true,
+  owner: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  organization: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
 } as const;
 
 const detailSelect = {
   ...listSelect,
   storageKey: true,
   ownerId: true,
+  lerExtractedAt: true,
+  entities: {
+    select: {
+      id: true,
+      entityType: true,
+      entityValue: true,
+      confidence: true,
+      sourceText: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "asc" as const },
+  },
+  sections: {
+    select: {
+      id: true,
+      orderIndex: true,
+      blockType: true,
+      headingLevel: true,
+      pageNumber: true,
+      content: true,
+    },
+    orderBy: { orderIndex: "asc" as const },
+  },
 } as const;
 
 const workspaceDocumentSelect = {
@@ -95,12 +159,26 @@ const workspaceDocumentSelect = {
   title: true,
   description: true,
   category: true,
+  documentType: true,
+  contentArea: true,
+  classification: true,
+  publishedAt: true,
+  revision: true,
+  legalStatus: true,
+  source: true,
   fileFormat: true,
   fileSizeBytes: true,
   status: true,
   visibility: true,
   organizationId: true,
+  lerExtractedAt: true,
   createdAt: true,
+  owner: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
   organization: {
     select: {
       id: true,
@@ -202,18 +280,28 @@ export class DocumentRepository {
   async createPersonalDocument(
     ownerId: string,
     actorName: string,
-    input: CreatePersonalDocumentInput
+    input: CreatePersonalDocumentWithFile
   ) {
+    const storageKey = buildStorageKey(`personal/${ownerId}`, input.fileName);
+    await saveFile(storageKey, input.fileBuffer);
+
     const document = await prismaClient.document.create({
       data: {
         title: input.title,
         description: input.description,
         category: input.category,
+        documentType: input.documentType,
+        contentArea: input.contentArea,
+        classification: input.classification,
+        publishedAt: input.publishedAt,
+        revision: input.revision,
+        legalStatus: input.legalStatus,
+        source: input.source,
         fileFormat: input.fileFormat,
-        fileSizeBytes: BigInt(input.fileSizeBytes ?? 1024),
-        status: "processing",
+        fileSizeBytes: BigInt(input.fileSizeBytes),
+        status: "ready",
         visibility: "public",
-        storageKey: `personal/${ownerId}/${crypto.randomUUID()}`,
+        storageKey,
         ownerId,
         organizationId: null,
       },
@@ -274,7 +362,7 @@ export class DocumentRepository {
   async revokePersonalDocument(documentId: string, ownerId: string, actorName: string) {
     const existing = await prismaClient.document.findFirst({
       where: { id: documentId, ownerId, organizationId: null },
-      select: { id: true, title: true },
+      select: { id: true, title: true, storageKey: true },
     });
     if (!existing) return "not_found" as const;
 
@@ -287,7 +375,61 @@ export class DocumentRepository {
       metadata: { documentId, title: existing.title },
     });
 
-    await prismaClient.document.delete({ where: { id: documentId } });
+    await prismaClient.$transaction([
+      prismaClient.documentEntity.deleteMany({ where: { documentId } }),
+      prismaClient.documentChunk.deleteMany({ where: { documentId } }),
+      prismaClient.documentSection.deleteMany({ where: { documentId } }),
+      prismaClient.document.delete({ where: { id: documentId } }),
+    ]);
+    await deleteStoredFile(existing.storageKey);
     return "ok" as const;
+  }
+
+  async findEntities(documentId: string) {
+    return prismaClient.documentEntity.findMany({
+      where: { documentId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        entityType: true,
+        entityValue: true,
+        confidence: true,
+        sourceText: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async startLerGeneration(
+    documentId: string,
+    ownerId: string,
+    options: { force?: boolean } = {}
+  ) {
+    const document = await prismaClient.document.findFirst({
+      where: { id: documentId, ownerId },
+      select: { id: true, status: true, title: true },
+    });
+    if (!document) return "not_found" as const;
+    if (document.status === "processing" && !options.force) {
+      return "already_processing" as const;
+    }
+
+    await prismaClient.$transaction([
+      prismaClient.documentEntity.deleteMany({ where: { documentId } }),
+      prismaClient.documentChunk.deleteMany({ where: { documentId } }),
+      prismaClient.documentSection.deleteMany({ where: { documentId } }),
+      prismaClient.document.update({
+        where: { id: documentId },
+        data: { status: "processing", lerExtractedAt: null },
+      }),
+    ]);
+
+    const { triggerLerExtraction } = await import("@/lib/ler/trigger-ler");
+    await triggerLerExtraction(documentId);
+    return "ok" as const;
+  }
+
+  async resetForLerRetry(documentId: string, ownerId: string) {
+    return this.startLerGeneration(documentId, ownerId);
   }
 }
