@@ -15,12 +15,21 @@ export class AuthService {
         name: true,
         email: true,
         role: true,
+        accountStatus: true,
         passwordHash: true,
       },
     });
 
     if (!user) {
       return { ok: false as const, reason: "invalid_credentials" };
+    }
+
+    if (user.accountStatus === "deleted") {
+      return { ok: false as const, reason: "account_deleted" };
+    }
+
+    if (user.accountStatus === "deactivated") {
+      return { ok: false as const, reason: "account_dormant" };
     }
 
     const valid = await Bun.password.verify(input.password, user.passwordHash);
