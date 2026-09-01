@@ -5,7 +5,7 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:generate": "prisma generate --schema=src/db/schema.prisma",
-    "db:push": "prisma db push --schema=src/db/schema.prisma",
+    "db:push": "prisma db push --schema=src/db/schema.prisma && prisma generate --schema=src/db/schema.prisma",
     "db:seed": "bun run src/db/seed.ts",
     "db:seed:auth": "bun run src/db/seed-auth.ts",
     "db:seed:organizations": "bun run src/db/seed-organizations.ts",
@@ -14,7 +14,10 @@
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
+    "bullmq": "^6.0.9",
     "hono": "^4.12.30",
+    "ioredis": "^6.0.0",
+    "kafkajs": "^2.2.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {

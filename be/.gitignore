@@ -1,6 +1,30 @@
-# deps
+# dependencies
 node_modules/
 
-# env
+# local uploads & generated files
+storage/
+
+# environment
 .env
-.env.local
+.env.*
+!.env.example
+
+# build
+dist/
+build/
+
+# prisma (generated client lives in node_modules)
+src/generated/
+
+# logs
+*.log
+logs/
+
+# bun
+.bun/
+
+# docker
+docker-compose.override.yml
+
+# os
+.DS_Store
